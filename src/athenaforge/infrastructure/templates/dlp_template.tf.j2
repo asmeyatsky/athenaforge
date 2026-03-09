@@ -1,0 +1,19 @@
+resource "google_data_loss_prevention_inspect_template" "{{ template_id }}" {
+  parent       = "projects/${var.project_id}/locations/${var.location}"
+  display_name = "{{ template_id }}"
+  description  = "AthenaForge DLP inspect template"
+
+  inspect_config {
+    {% for info_type in info_types %}
+    info_types {
+      name = "{{ info_type }}"
+    }
+    {% endfor %}
+
+    min_likelihood = "POSSIBLE"
+
+    limits {
+      max_findings_per_request = 100
+    }
+  }
+}

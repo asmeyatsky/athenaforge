@@ -1,0 +1,125 @@
+- name: map_constructor_to_struct
+  category: MAP_CONSTRUCTOR
+  description: "Convert Presto MAP(ARRAY[...], ARRAY[...]) constructor to BigQuery STRUCT syntax"
+  presto_pattern: "MAP\\(\\s*ARRAY\\[([^\\]]+)\\]\\s*,\\s*ARRAY\\[([^\\]]+)\\]\\s*\\)"
+  googlesql_replacement: "STRUCT(\\1, \\2)"
+  examples:
+    - presto_sql: "SELECT MAP(ARRAY['a', 'b'], ARRAY[1, 2])"
+      googlesql: "SELECT STRUCT('a', 'b', 1, 2)"
+
+- name: map_constructor_empty
+  category: MAP_CONSTRUCTOR
+  description: "Convert Presto empty MAP() constructor to BigQuery STRUCT()"
+  presto_pattern: "\\bMAP\\(\\s*\\)"
+  googlesql_replacement: "STRUCT()"
+  examples:
+    - presto_sql: "SELECT MAP()"
+      googlesql: "SELECT STRUCT()"
+
+- name: transform_array
+  category: TRANSFORM
+  description: "Convert Presto TRANSFORM(array, lambda) to BigQuery ARRAY(SELECT ... FROM UNNEST(...))"
+  presto_pattern: "\\bTRANSFORM\\(\\s*([^,]+)\\s*,\\s*([a-zA-Z_]\\w*)\\s*->\\s*([^)]+)\\)"
+  googlesql_replacement: "ARRAY(SELECT \\3 FROM UNNEST(\\1) AS \\2)"
+  examples:
+    - presto_sql: "SELECT TRANSFORM(arr, x -> x * 2)"
+      googlesql: "SELECT ARRAY(SELECT x * 2 FROM UNNEST(arr) AS x)"
+
+- name: transform_nested
+  category: TRANSFORM
+  description: "Convert Presto TRANSFORM with nested expression to BigQuery equivalent"
+  presto_pattern: "\\bTRANSFORM\\(\\s*([^,]+)\\s*,\\s*([a-zA-Z_]\\w*)\\s*->\\s*CAST\\(([^)]+)\\s+AS\\s+([^)]+)\\)\\)"
+  googlesql_replacement: "ARRAY(SELECT CAST(\\3 AS \\4) FROM UNNEST(\\1) AS \\2)"
+  examples:
+    - presto_sql: "SELECT TRANSFORM(ids, x -> CAST(x AS VARCHAR))"
+      googlesql: "SELECT ARRAY(SELECT CAST(x AS VARCHAR) FROM UNNEST(ids) AS x)"
+
+- name: filter_array
+  category: FILTER
+  description: "Convert Presto FILTER(array, lambda) to BigQuery ARRAY(SELECT ... FROM UNNEST(...) WHERE ...)"
+  presto_pattern: "\\bFILTER\\(\\s*([^,]+)\\s*,\\s*([a-zA-Z_]\\w*)\\s*->\\s*([^)]+)\\)"
+  googlesql_replacement: "ARRAY(SELECT \\2 FROM UNNEST(\\1) AS \\2 WHERE \\3)"
+  examples:
+    - presto_sql: "SELECT FILTER(arr, x -> x > 10)"
+      googlesql: "SELECT ARRAY(SELECT x FROM UNNEST(arr) AS x WHERE x > 10)"
+
+- name: date_trunc
+  category: DATE_TRUNC
+  description: "Convert Presto DATE_TRUNC('unit', expr) to BigQuery DATE_TRUNC(expr, unit)"
+  presto_pattern: "\\bDATE_TRUNC\\(\\s*'(\\w+)'\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "DATE_TRUNC(\\2, \\1)"
+  examples:
+    - presto_sql: "SELECT DATE_TRUNC('month', order_date)"
+      googlesql: "SELECT DATE_TRUNC(order_date, MONTH)"
+
+- name: date_add
+  category: DATE_ADD
+  description: "Convert Presto DATE_ADD('unit', amount, expr) to BigQuery DATE_ADD(expr, INTERVAL amount unit)"
+  presto_pattern: "\\bDATE_ADD\\(\\s*'(\\w+)'\\s*,\\s*(-?\\d+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "DATE_ADD(\\3, INTERVAL \\2 \\1)"
+  examples:
+    - presto_sql: "SELECT DATE_ADD('day', 7, order_date)"
+      googlesql: "SELECT DATE_ADD(order_date, INTERVAL 7 DAY)"
+
+- name: try_cast
+  category: TRY_CAST
+  description: "Convert Presto TRY_CAST(expr AS type) to BigQuery SAFE_CAST(expr AS type)"
+  presto_pattern: "\\bTRY_CAST\\("
+  googlesql_replacement: "SAFE_CAST("
+  examples:
+    - presto_sql: "SELECT TRY_CAST(col AS INTEGER)"
+      googlesql: "SELECT SAFE_CAST(col AS INTEGER)"
+
+- name: regexp_like
+  category: REGEXP_LIKE
+  description: "Convert Presto REGEXP_LIKE(str, pattern) to BigQuery REGEXP_CONTAINS(str, pattern)"
+  presto_pattern: "\\bREGEXP_LIKE\\("
+  googlesql_replacement: "REGEXP_CONTAINS("
+  examples:
+    - presto_sql: "SELECT REGEXP_LIKE(name, '^A.*')"
+      googlesql: "SELECT REGEXP_CONTAINS(name, '^A.*')"
+
+- name: approx_distinct
+  category: APPROX_DISTINCT
+  description: "Convert Presto APPROX_DISTINCT(expr) to BigQuery APPROX_COUNT_DISTINCT(expr)"
+  presto_pattern: "\\bAPPROX_DISTINCT\\("
+  googlesql_replacement: "APPROX_COUNT_DISTINCT("
+  examples:
+    - presto_sql: "SELECT APPROX_DISTINCT(user_id)"
+      googlesql: "SELECT APPROX_COUNT_DISTINCT(user_id)"
+
+- name: arbitrary
+  category: ARBITRARY
+  description: "Convert Presto ARBITRARY(expr) to BigQuery ANY_VALUE(expr)"
+  presto_pattern: "\\bARBITRARY\\("
+  googlesql_replacement: "ANY_VALUE("
+  examples:
+    - presto_sql: "SELECT ARBITRARY(name) FROM users GROUP BY dept"
+      googlesql: "SELECT ANY_VALUE(name) FROM users GROUP BY dept"
+
+- name: contains_function
+  category: CONTAINS
+  description: "Convert Presto CONTAINS(array, element) to BigQuery expression using IN with UNNEST"
+  presto_pattern: "\\bCONTAINS\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "(\\2 IN UNNEST(\\1))"
+  examples:
+    - presto_sql: "SELECT CONTAINS(tags, 'urgent')"
+      googlesql: "SELECT ('urgent' IN UNNEST(tags))"
+
+- name: map_keys
+  category: MAP_KEYS
+  description: "Convert Presto MAP_KEYS(map_col) to BigQuery extraction of keys from map struct"
+  presto_pattern: "\\bMAP_KEYS\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "ARRAY(SELECT key FROM UNNEST(\\1))"
+  examples:
+    - presto_sql: "SELECT MAP_KEYS(attributes)"
+      googlesql: "SELECT ARRAY(SELECT key FROM UNNEST(attributes))"
+
+- name: map_values
+  category: MAP_VALUES
+  description: "Convert Presto MAP_VALUES(map_col) to BigQuery extraction of values from map struct"
+  presto_pattern: "\\bMAP_VALUES\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "ARRAY(SELECT value FROM UNNEST(\\1))"
+  examples:
+    - presto_sql: "SELECT MAP_VALUES(attributes)"
+      googlesql: "SELECT ARRAY(SELECT value FROM UNNEST(attributes))"

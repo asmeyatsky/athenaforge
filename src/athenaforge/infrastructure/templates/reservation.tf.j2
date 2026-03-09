@@ -1,0 +1,17 @@
+resource "google_bigquery_reservation" "{{ reservation_id }}" {
+  name     = "{{ reservation_id }}"
+  location = "{{ location }}"
+
+  slot_capacity = {{ slots }}
+  edition       = "{{ edition }}"
+
+  autoscale {
+    max_slots = {{ slots }}
+  }
+}
+
+resource "google_bigquery_reservation_assignment" "{{ reservation_id }}_assignment" {
+  assignee    = "projects/${var.project_id}"
+  reservation = google_bigquery_reservation.{{ reservation_id }}.id
+  job_type    = "QUERY"
+}

@@ -1,0 +1,47 @@
+resource "google_storage_transfer_job" "{{ job_name }}" {
+  description = "AthenaForge transfer: {{ source_bucket }} -> {{ dest_bucket }}"
+  project     = var.project_id
+
+  transfer_spec {
+    aws_s3_data_source {
+      bucket_name = "{{ source_bucket }}"
+
+      aws_access_key {
+        access_key_id     = var.aws_access_key_id
+        secret_access_key = var.aws_secret_access_key
+      }
+    }
+
+    gcs_data_sink {
+      bucket_name = "{{ dest_bucket }}"
+      path        = "/"
+    }
+
+    transfer_options {
+      overwrite_objects_already_existing_in_sink = false
+    }
+  }
+
+  schedule {
+    schedule_start_date {
+      year  = {{ schedule.start_year }}
+      month = {{ schedule.start_month }}
+      day   = {{ schedule.start_day }}
+    }
+    {% if schedule.end_year is defined %}
+    schedule_end_date {
+      year  = {{ schedule.end_year }}
+      month = {{ schedule.end_month }}
+      day   = {{ schedule.end_day }}
+    }
+    {% endif %}
+    {% if schedule.start_time_of_day is defined %}
+    start_time_of_day {
+      hours   = {{ schedule.start_time_of_day.hours | default(0) }}
+      minutes = {{ schedule.start_time_of_day.minutes | default(0) }}
+      seconds = 0
+      nanos   = 0
+    }
+    {% endif %}
+  }
+}

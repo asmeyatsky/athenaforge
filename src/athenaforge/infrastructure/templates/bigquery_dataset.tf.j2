@@ -1,0 +1,27 @@
+resource "google_bigquery_dataset" "{{ dataset_id }}" {
+  dataset_id  = "{{ dataset_id }}"
+  project     = var.project_id
+  location    = "{{ location }}"
+  description = "{{ description }}"
+
+  labels = {
+    managed_by = "athenaforge"
+  }
+
+  default_table_expiration_ms = null
+
+  access {
+    role          = "OWNER"
+    special_group = "projectOwners"
+  }
+
+  access {
+    role          = "READER"
+    special_group = "projectReaders"
+  }
+
+  access {
+    role          = "WRITER"
+    special_group = "projectWriters"
+  }
+}

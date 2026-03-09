@@ -1,0 +1,28 @@
+resource "google_dataplex_lake" "{{ lake_id }}" {
+  name     = "{{ lake_id }}"
+  location = "{{ location }}"
+  project  = var.project_id
+
+  labels = {
+    managed_by = "athenaforge"
+  }
+}
+
+{% for zone in zones %}
+resource "google_dataplex_zone" "{{ zone.id }}" {
+  name     = "{{ zone.id }}"
+  location = "{{ location }}"
+  lake     = google_dataplex_lake.{{ lake_id }}.name
+  project  = var.project_id
+  type     = "{{ zone.type | default('RAW') }}"
+
+  discovery_spec {
+    enabled = true
+  }
+
+  resource_spec {
+    location_type = "SINGLE_REGION"
+  }
+}
+
+{% endfor %}

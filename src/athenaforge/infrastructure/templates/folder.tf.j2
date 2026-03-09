@@ -1,0 +1,4 @@
+resource "google_folder" "{{ folder_name }}" {
+  display_name = "{{ folder_name }}"
+  parent       = "{{ parent_id }}"
+}

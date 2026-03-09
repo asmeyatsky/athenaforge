@@ -1,0 +1,13 @@
+{% for binding in bindings %}
+resource "google_project_iam_binding" "{{ binding.role | replace('/', '_') | replace('.', '_') }}" {
+  project = "{{ project_id }}"
+  role    = "{{ binding.role }}"
+
+  members = [
+    {% for member in binding.members %}
+    "{{ member }}",
+    {% endfor %}
+  ]
+}
+
+{% endfor %}
