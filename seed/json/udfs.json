@@ -1,0 +1,7 @@
+{
+  "parse_user_agent": "CREATE FUNCTION parse_user_agent(ua VARCHAR) RETURNS ROW(browser VARCHAR, os VARCHAR, device VARCHAR) RETURN ROW(REGEXP_EXTRACT(ua, '(Chrome|Firefox|Safari)', 1), REGEXP_EXTRACT(ua, '(Windows|Mac|Linux)', 1), CASE WHEN ua LIKE '%Mobile%' THEN 'mobile' ELSE 'desktop' END)",
+  "calculate_ltv": "CREATE FUNCTION calculate_ltv(revenue DOUBLE, months INTEGER) RETURNS DOUBLE RETURN revenue * months * 0.85",
+  "geo_distance": "import math\ndef geo_distance(lat1, lon1, lat2, lon2):\n    R = 6371\n    dlat = math.radians(lat2 - lat1)\n    dlon = math.radians(lon2 - lon1)\n    a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2\n    return R * 2 * math.asin(math.sqrt(a))",
+  "normalize_email": "CREATE FUNCTION normalize_email(email VARCHAR) RETURNS VARCHAR RETURN LOWER(TRIM(email))",
+  "sentiment_score": "import requests\ndef sentiment_score(text):\n    response = requests.post('https://ml-api.internal/sentiment', json={'text': text})\n    return response.json()['score']"
+}

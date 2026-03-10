@@ -1,0 +1,9 @@
+{
+  "finance.daily_revenue": ["finance.invoice_line_items", "finance.cost_allocations"],
+  "finance.invoice_line_items": ["finance.cost_allocations"],
+  "marketing.campaign_events": ["marketing.attribution_touches"],
+  "marketing.attribution_touches": [],
+  "engineering.app_logs": ["engineering.error_traces"],
+  "engineering.error_traces": ["engineering.deploy_metrics"],
+  "engineering.deploy_metrics": []
+}

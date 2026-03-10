@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Daily Active Users",
+    "legacy_value": 125000,
+    "new_value": 124850,
+    "tolerance_pct": 1.0
+  },
+  {
+    "name": "Total Revenue (USD)",
+    "legacy_value": 2450000.50,
+    "new_value": 2450000.50,
+    "tolerance_pct": 0.01
+  },
+  {
+    "name": "Avg Session Duration (sec)",
+    "legacy_value": 342.5,
+    "new_value": 340.1,
+    "tolerance_pct": 2.0
+  },
+  {
+    "name": "Conversion Rate (%)",
+    "legacy_value": 3.45,
+    "new_value": 3.42,
+    "tolerance_pct": 1.5
+  },
+  {
+    "name": "Error Rate (%)",
+    "legacy_value": 0.12,
+    "new_value": 0.11,
+    "tolerance_pct": 10.0
+  }
+]

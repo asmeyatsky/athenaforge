@@ -1,0 +1,23 @@
+[
+  {
+    "name": "Executive Revenue Dashboard",
+    "source": "athena",
+    "target": "bigquery",
+    "datasets": ["finance.daily_revenue", "finance.cost_allocations"],
+    "tool": "looker"
+  },
+  {
+    "name": "Marketing Campaign Tracker",
+    "source": "athena",
+    "target": "bigquery",
+    "datasets": ["marketing.campaign_events", "marketing.attribution_touches"],
+    "tool": "looker"
+  },
+  {
+    "name": "Engineering SRE Dashboard",
+    "source": "athena",
+    "target": "bigquery",
+    "datasets": ["engineering.app_logs", "engineering.deploy_metrics"],
+    "tool": "grafana"
+  }
+]

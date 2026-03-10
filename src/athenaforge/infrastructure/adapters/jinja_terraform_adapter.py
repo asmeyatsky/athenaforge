@@ -18,7 +18,11 @@ class JinjaTerraformAdapter:
         )
 
     def render_template(self, template_name: str, context: dict) -> str:
-        template = self._env.get_template(template_name)
+        try:
+            template = self._env.get_template(template_name)
+        except Exception:
+            # Fall back to .j2 extension if bare name not found
+            template = self._env.get_template(template_name + ".j2")
         return template.render(**context)
 
     def write_file(self, output_path: str, content: str) -> None:

@@ -91,10 +91,10 @@ def normalise_case(ctx, sql_file, columns, output_file):
         result = asyncio.run(container.normalise_case_sensitivity_use_case.execute(sql_content, column_list))
         if output_file:
             with open(output_file, "w") as f:
-                f.write(result)
-            console.print(f"[green]\u2713[/green] Normalised SQL written to {output_file}")
+                f.write(result.normalised_sql)
+            console.print(f"[green]\u2713[/green] Normalised SQL written to {output_file} ({result.columns_normalised} columns wrapped)")
         else:
-            console.print(result)
+            console.print(result.normalised_sql)
     except Exception as exc:
         console.print(f"\n[bold red]Error:[/bold red] {type(exc).__name__}: {exc}")
         raise SystemExit(1)

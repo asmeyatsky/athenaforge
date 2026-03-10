@@ -315,6 +315,7 @@ class DependencyContainer:
             tier_service=self.tier_classification_service,
             table_repo=self.table_inventory_repo,
             event_bus=self.event_bus,
+            table_write_repo=self.table_inventory_repo,
         )
 
     @property

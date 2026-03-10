@@ -1,0 +1,36 @@
+project:
+  name: "AcmeCorp Data Platform Migration"
+  gcp_project_id: "acme-analytics-prod"
+  gcp_org_id: "123456789012"
+  billing_account: "01A2B3-C4D5E6-F7G8H9"
+
+lobs:
+  - name: finance
+    owner: "finance-data-team@acme.com"
+    datasets:
+      - name: revenue
+        description: "Revenue analytics datasets"
+      - name: billing
+        description: "Billing and invoicing data"
+    data_classification: CONFIDENTIAL
+    region: asia-south1
+
+  - name: marketing
+    owner: "marketing-analytics@acme.com"
+    datasets:
+      - name: campaigns
+        description: "Campaign performance data"
+      - name: attribution
+        description: "Multi-touch attribution models"
+    data_classification: INTERNAL
+    region: asia-south1
+
+  - name: engineering
+    owner: "platform-eng@acme.com"
+    datasets:
+      - name: logs
+        description: "Application and infrastructure logs"
+      - name: metrics
+        description: "System performance metrics"
+    data_classification: INTERNAL
+    region: asia-south1

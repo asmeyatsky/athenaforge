@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AthenaForge™ — Migration Dashboard</title>
+<style>
+:root {
+  --bg: #0f1117;
+  --bg-card: #1a1d27;
+  --bg-card-hover: #1e2130;
+  --bg-surface: #242736;
+  --border: #2d3148;
+  --text: #e4e6f0;
+  --text-muted: #8b8fa3;
+  --text-dim: #5c6077;
+  --accent: #6c5ce7;
+  --accent-light: #a29bfe;
+  --green: #00cec9;
+  --green-bg: rgba(0,206,201,0.12);
+  --red: #ff6b6b;
+  --red-bg: rgba(255,107,107,0.12);
+  --yellow: #feca57;
+  --yellow-bg: rgba(254,202,87,0.12);
+  --blue: #74b9ff;
+  --blue-bg: rgba(116,185,255,0.12);
+  --orange: #fd9644;
+  --tier1: #00cec9;
+  --tier2: #fdcb6e;
+  --tier3: #636e72;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── Scrollbar ─── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── Header ─── */
+.header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(15,17,23,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  height: 64px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 18px; font-weight: 700;
+  letter-spacing: -0.3px;
+}
+.logo svg { width: 28px; height: 28px; }
+.logo .tm { font-size: 10px; vertical-align: super; color: var(--accent-light); }
+.logo-sub { font-size: 12px; color: var(--text-muted); font-weight: 400; margin-left: 8px; }
+.run-btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  transition: all 0.2s;
+}
+.run-btn:hover { background: #5a4bd1; transform: translateY(-1px); }
+.run-btn:active { transform: translateY(0); }
+.run-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.run-btn .spinner {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  display: none;
+}
+.run-btn.loading .spinner { display: block; }
+.run-btn.loading .play-icon { display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Main Layout ─── */
+.main { max-width: 1320px; margin: 0 auto; padding: 24px 32px 64px; }
+
+/* ── Metrics Bar ─── */
+.metrics-bar {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.metric-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  transition: all 0.2s;
+}
+.metric-card:hover { border-color: var(--accent); background: var(--bg-card-hover); }
+.metric-value {
+  font-size: 32px; font-weight: 700;
+  letter-spacing: -1px;
+  line-height: 1.2;
+}
+.metric-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.metric-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* ── Module Sections ─── */
+.module {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.module-header {
+  padding: 20px 24px;
+  display: flex; align-items: center; gap: 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+.module-header:hover { background: var(--bg-card-hover); }
+.module-tag {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px;
+  background: var(--accent);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 700;
+  flex-shrink: 0;
+}
+.module-title { font-size: 16px; font-weight: 600; flex: 1; }
+.module-title span { color: var(--text-muted); font-weight: 400; }
+.module-badges { display: flex; gap: 8px; }
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+}
+.badge-green { background: var(--green-bg); color: var(--green); }
+.badge-red { background: var(--red-bg); color: var(--red); }
+.badge-yellow { background: var(--yellow-bg); color: var(--yellow); }
+.badge-blue { background: var(--blue-bg); color: var(--blue); }
+.chevron {
+  width: 20px; height: 20px;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.module.open .chevron { transform: rotate(180deg); }
+.module-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease;
+}
+.module.open .module-body { max-height: 4000px; }
+.module-content {
+  padding: 0 24px 24px;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
+
+/* ── Grid Layouts ─── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+.grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+
+/* ── Sub-Cards ─── */
+.sub-card {
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  padding: 20px;
+}
+.sub-card-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 14px;
+}
+
+/* ── Tables ─── */
+.data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+.data-table th {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+}
+.data-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(45,49,72,0.5);
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: rgba(108,92,231,0.04); }
+.data-table .mono { font-family: var(--mono); font-size: 12px; }
+.data-table .right { text-align: right; }
+
+/* ── Status Dots ─── */
+.status-dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+.status-dot.green { background: var(--green); }
+.status-dot.red { background: var(--red); }
+.status-dot.yellow { background: var(--yellow); }
+
+/* ── Donut Chart ─── */
+.chart-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+.donut-chart { position: relative; }
+.donut-center {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+.donut-center .value { font-size: 24px; font-weight: 700; }
+.donut-center .label { font-size: 11px; color: var(--text-muted); }
+.chart-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.legend-dot {
+  width: 10px; height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* ── Bar Chart ─── */
+.bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.bar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.bar-label {
+  width: 140px;
+  font-size: 13px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.bar-track {
+  flex: 1;
+  height: 28px;
+  background: rgba(45,49,72,0.4);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  padding-left: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  transition: width 0.8s ease;
+}
+.bar-value {
+  font-size: 13px;
+  font-weight: 600;
+  width: 80px;
+  flex-shrink: 0;
+}
+
+/* ── Code Diff ─── */
+.code-block {
+  background: #0d1117;
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-x: auto;
+  white-space: pre;
+  color: #c9d1d9;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.diff-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 0;
+}
+.diff-tab {
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.diff-tab:first-child { border-radius: var(--radius-sm) 0 0 0; }
+.diff-tab:last-child { border-radius: 0 var(--radius-sm) 0 0; }
+.diff-tab.active { background: #0d1117; color: var(--accent-light); border-bottom-color: #0d1117; }
+.diff-container { position: relative; }
+.diff-pane { display: none; }
+.diff-pane.active { display: block; }
+.file-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.file-tab {
+  padding: 6px 14px;
+  font-size: 11px;
+  font-family: var(--mono);
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.file-tab:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.file-tab:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.file-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+/* ── Rollback Cards ─── */
+.rollback-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.rollback-card {
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  border-left: 3px solid;
+}
+.rollback-card.safe { border-color: var(--green); }
+.rollback-card.danger { border-color: var(--red); }
+.rollback-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+.condition-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(45,49,72,0.3);
+}
+.condition-row:last-child { border-bottom: none; }
+
+/* ── Loading State ─── */
+.loading-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(15,17,23,0.8);
+  backdrop-filter: blur(8px);
+  z-index: 200;
+  align-items: center; justify-content: center;
+  flex-direction: column; gap: 20px;
+}
+.loading-overlay.show { display: flex; }
+.loading-text { font-size: 16px; color: var(--text-muted); }
+.loading-bar {
+  width: 300px; height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.loading-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  border-radius: 2px;
+  width: 0%;
+  transition: width 0.3s;
+}
+
+/* ── Empty state ─── */
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-muted);
+}
+.empty-state svg { width: 48px; height: 48px; margin-bottom: 16px; opacity: 0.4; }
+.empty-state h3 { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+.empty-state p { font-size: 14px; }
+
+/* ── Responsive ─── */
+@media (max-width: 900px) {
+  .metrics-bar { grid-template-columns: repeat(2, 1fr); }
+  .grid-2, .grid-3, .grid-2-1 { grid-template-columns: 1fr; }
+  .rollback-grid { grid-template-columns: 1fr; }
+  .main { padding: 16px; }
+  .header { padding: 0 16px; }
+}
+
+/* ── Animations ─── */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeIn 0.4s ease forwards; }
+.module { opacity: 0; animation: fadeIn 0.4s ease forwards; }
+.module:nth-child(1) { animation-delay: 0.05s; }
+.module:nth-child(2) { animation-delay: 0.1s; }
+.module:nth-child(3) { animation-delay: 0.15s; }
+.module:nth-child(4) { animation-delay: 0.2s; }
+.module:nth-child(5) { animation-delay: 0.25s; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">
+    <svg viewBox="0 0 28 28" fill="none">
+      <rect width="28" height="28" rx="6" fill="#6c5ce7"/>
+      <path d="M7 20L14 8L21 20H7Z" fill="none" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+      <circle cx="14" cy="16" r="2" fill="white"/>
+    </svg>
+    <div>AthenaForge<span class="tm">TM</span>
+      <span class="logo-sub">Athena-to-BigQuery Migration Accelerator</span>
+    </div>
+  </div>
+  <button class="run-btn" id="runBtn" onclick="runDemo()">
+    <div class="spinner"></div>
+    <svg class="play-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+      <path d="M4 2.5v11l9-5.5L4 2.5z"/>
+    </svg>
+    Run Migration Analysis
+  </button>
+</header>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <svg width="48" height="48" viewBox="0 0 28 28" fill="none">
+    <rect width="28" height="28" rx="6" fill="#6c5ce7"/>
+    <path d="M7 20L14 8L21 20H7Z" fill="none" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="14" cy="16" r="2" fill="white"/>
+  </svg>
+  <div class="loading-text" id="loadingText">Running migration analysis...</div>
+  <div class="loading-bar"><div class="loading-bar-fill" id="loadingFill"></div></div>
+</div>
+
+<main class="main">
+  <div id="emptyState" class="empty-state">
+    <svg viewBox="0 0 28 28" fill="none">
+      <rect width="28" height="28" rx="6" fill="#6c5ce7"/>
+      <path d="M7 20L14 8L21 20H7Z" fill="none" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+      <circle cx="14" cy="16" r="2" fill="white"/>
+    </svg>
+    <h3>Ready to Analyze</h3>
+    <p>Click "Run Migration Analysis" to execute the full pipeline with seed data across all 5 modules.</p>
+  </div>
+
+  <div id="dashboard" style="display:none">
+    <!-- Metrics Bar -->
+    <div class="metrics-bar" id="metricsBar"></div>
+
+    <!-- M1: FoundationForge -->
+    <div class="module open" id="module-m1">
+      <div class="module-header" onclick="toggleModule('module-m1')">
+        <div class="module-tag">M1</div>
+        <div class="module-title">FoundationForge <span>— Scaffolding &amp; Classification</span></div>
+        <div class="module-badges" id="m1-badges"></div>
+        <svg class="chevron" viewBox="0 0 20 20" fill="currentColor"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+      </div>
+      <div class="module-body"><div class="module-content" id="m1-content"></div></div>
+    </div>
+
+    <!-- M2: SQLForge -->
+    <div class="module" id="module-m2">
+      <div class="module-header" onclick="toggleModule('module-m2')">
+        <div class="module-tag">M2</div>
+        <div class="module-title">SQLForge <span>— Translation &amp; UDF Classification</span></div>
+        <div class="module-badges" id="m2-badges"></div>
+        <svg class="chevron" viewBox="0 0 20 20" fill="currentColor"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+      </div>
+      <div class="module-body"><div class="module-content" id="m2-content"></div></div>
+    </div>
+
+    <!-- M3: TransferForge -->
+    <div class="module" id="module-m3">
+      <div class="module-header" onclick="toggleModule('module-m3')">
+        <div class="module-tag">M3</div>
+        <div class="module-title">TransferForge <span>— Egress Costing &amp; Streaming</span></div>
+        <div class="module-badges" id="m3-badges"></div>
+        <svg class="chevron" viewBox="0 0 20 20" fill="currentColor"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+      </div>
+      <div class="module-body"><div class="module-content" id="m3-content"></div></div>
+    </div>
+
+    <!-- M4: WaveForge -->
+    <div class="module" id="module-m4">
+      <div class="module-header" onclick="toggleModule('module-m4')">
+        <div class="module-tag">M4</div>
+        <div class="module-title">WaveForge <span>— Wave Planning &amp; Rollback</span></div>
+        <div class="module-badges" id="m4-badges"></div>
+        <svg class="chevron" viewBox="0 0 20 20" fill="currentColor"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+      </div>
+      <div class="module-body"><div class="module-content" id="m4-content"></div></div>
+    </div>
+
+    <!-- M5: DependencyForge -->
+    <div class="module" id="module-m5">
+      <div class="module-header" onclick="toggleModule('module-m5')">
+        <div class="module-tag">M5</div>
+        <div class="module-title">DependencyForge <span>— DAGs, Kafka, Lambda &amp; IAM</span></div>
+        <div class="module-badges" id="m5-badges"></div>
+        <svg class="chevron" viewBox="0 0 20 20" fill="currentColor"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+      </div>
+      <div class="module-body"><div class="module-content" id="m5-content"></div></div>
+    </div>
+  </div>
+</main>
+
+<script>
+function toggleModule(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+function fmt(n) { return n.toLocaleString(); }
+function fmtUsd(n) { return '$' + n.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+function fmtBytes(b) {
+  if (b >= 1e12) return (b/1e12).toFixed(1) + ' TB';
+  if (b >= 1e9) return (b/1e9).toFixed(1) + ' GB';
+  if (b >= 1e6) return (b/1e6).toFixed(1) + ' MB';
+  return b + ' B';
+}
+
+function donut(container, data, total) {
+  const size = 130, cx = size/2, cy = size/2, r = 50, stroke = 14;
+  let offset = 0;
+  const circumference = 2 * Math.PI * r;
+  let svg = `<div class="donut-chart"><svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`;
+  data.forEach(d => {
+    const pct = d.value / total;
+    const dash = pct * circumference;
+    const gap = circumference - dash;
+    svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${d.color}"
+      stroke-width="${stroke}" stroke-dasharray="${dash} ${gap}"
+      stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})"
+      style="transition: stroke-dasharray 0.8s ease"/>`;
+    offset += dash;
+  });
+  svg += `</svg><div class="donut-center"><div class="value">${total}</div><div class="label">tables</div></div></div>`;
+  svg += `<div class="chart-legend">`;
+  data.forEach(d => {
+    svg += `<div class="legend-item"><div class="legend-dot" style="background:${d.color}"></div>
+      ${d.label} <strong>${d.value}</strong></div>`;
+  });
+  svg += `</div>`;
+  container.innerHTML = svg;
+}
+
+function renderMetrics(data) {
+  const f = data.foundation, s = data.sql, t = data.transfer, w = data.wave, d = data.dependency;
+  const bar = document.getElementById('metricsBar');
+  bar.innerHTML = `
+    <div class="metric-card fade-in">
+      <div class="metric-value" style="color:var(--accent-light)">${f.classification.total_tables}</div>
+      <div class="metric-label">Tables Inventoried</div>
+      <div class="metric-sub">${f.classification.tier1_count} Tier-1 &middot; ${f.classification.tier2_count} Tier-2 &middot; ${f.classification.tier3_count} Tier-3</div>
+    </div>
+    <div class="metric-card fade-in">
+      <div class="metric-value" style="color:var(--green)">${s.translation.succeeded}/${s.translation.total_files}</div>
+      <div class="metric-label">SQL Files Translated</div>
+      <div class="metric-sub">${s.translation.patterns_applied.length} patterns applied</div>
+    </div>
+    <div class="metric-card fade-in">
+      <div class="metric-value" style="color:var(--orange)">${fmtUsd(t.egress_cost.scenario_optimized_usd)}</div>
+      <div class="metric-label">Optimized Egress Cost</div>
+      <div class="metric-sub">${fmtBytes(t.egress_cost.total_size_bytes)} total transfer</div>
+    </div>
+    <div class="metric-card fade-in">
+      <div class="metric-value" style="color:var(--blue)">${w.plan.total_waves}</div>
+      <div class="metric-label">Migration Waves</div>
+      <div class="metric-sub">${w.plan.total_tables} tables across ${w.plan.waves.length} LOBs</div>
+    </div>
+    <div class="metric-card fade-in">
+      <div class="metric-value" style="color:var(--yellow)">${d.dag_rewrite.operators_replaced}</div>
+      <div class="metric-label">Operators Rewritten</div>
+      <div class="metric-sub">${d.dag_rewrite.dags_rewritten} DAGs &middot; ${d.lambdas.functions_rewritten} Lambdas</div>
+    </div>`;
+}
+
+function renderM1(data) {
+  const c = data.classification;
+  const p = data.pricing;
+  const s = data.scaffold;
+
+  document.getElementById('m1-badges').innerHTML = `
+    <span class="badge badge-green">${s.terraform_files} TF files</span>
+    <span class="badge badge-blue">${c.total_tables} tables classified</span>`;
+
+  const content = document.getElementById('m1-content');
+  content.innerHTML = `
+    <div class="grid-2">
+      <div class="sub-card">
+        <div class="sub-card-title">Tier Distribution</div>
+        <div class="chart-container" id="tierChart"></div>
+      </div>
+      <div class="sub-card">
+        <div class="sub-card-title">Table Classifications</div>
+        <table class="data-table">
+          <thead><tr><th>Table</th><th>Tier</th></tr></thead>
+          <tbody>${Object.entries(c.classifications).map(([t,tier]) => {
+            const color = tier === 'TIER_1' ? 'green' : tier === 'TIER_2' ? 'yellow' : 'red';
+            return `<tr><td class="mono">${t}</td><td><span class="status-dot ${color}"></span>${tier.replace('_', ' ')}</td></tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="grid-2" style="margin-top:16px">
+      <div class="sub-card">
+        <div class="sub-card-title">Terraform Scaffold</div>
+        <div style="display:flex;gap:24px;align-items:center;">
+          <div><span style="font-size:36px;font-weight:700;color:var(--accent-light)">${s.terraform_files}</span>
+          <span style="color:var(--text-muted);font-size:14px;margin-left:8px">files generated</span></div>
+          <div style="color:var(--text-muted);font-size:13px">${s.lobs.map(l => `<span class="badge badge-blue" style="margin:2px">${l}</span>`).join('')}</div>
+        </div>
+      </div>
+      <div class="sub-card">
+        <div class="sub-card-title">BigQuery Slot Pricing</div>
+        <div style="display:flex;gap:24px;align-items:baseline">
+          <div><span style="font-size:36px;font-weight:700;color:var(--green)">${fmtUsd(p.monthly_cost_usd)}</span>
+          <span style="color:var(--text-muted);font-size:13px">/month</span></div>
+          <div style="color:var(--text-muted);font-size:13px">${p.edition} &middot; ${p.slots} slots &middot; 3yr</div>
+        </div>
+      </div>
+    </div>`;
+
+  donut(document.getElementById('tierChart'), [
+    { label: 'Tier 1 (Active, <1TB)', value: c.tier1_count, color: 'var(--tier1)' },
+    { label: 'Tier 2 (Active, >=1TB)', value: c.tier2_count, color: 'var(--tier2)' },
+    { label: 'Tier 3 (Inactive)', value: c.tier3_count, color: 'var(--tier3)' },
+  ], c.total_tables);
+}
+
+function renderM2(data) {
+  const t = data.translation;
+  const u = data.udf_classification;
+  const m = data.map_cascade;
+  const details = data.translations_detail || [];
+
+  document.getElementById('m2-badges').innerHTML = `
+    <span class="badge badge-green">${t.succeeded}/${t.total_files} translated</span>
+    <span class="badge badge-blue">${t.patterns_applied.length} patterns</span>`;
+
+  let fileTabs = '', filePanes = '';
+  details.forEach((d, i) => {
+    const active = i === 0 ? 'active' : '';
+    fileTabs += `<button class="file-tab ${active}" onclick="switchFile(${i})">${d.file}</button>`;
+    filePanes += `
+      <div class="diff-container file-pane" data-idx="${i}" style="display:${i===0?'block':'none'}">
+        <div class="diff-tabs">
+          <button class="diff-tab active" onclick="switchDiff(this,'original',${i})">Presto SQL</button>
+          <button class="diff-tab" onclick="switchDiff(this,'translated',${i})">BigQuery SQL</button>
+        </div>
+        <div class="diff-pane active" data-type="original"><div class="code-block">${escHtml(d.original)}</div></div>
+        <div class="diff-pane" data-type="translated"><div class="code-block">${escHtml(d.translated)}</div></div>
+      </div>`;
+  });
+
+  const content = document.getElementById('m2-content');
+  content.innerHTML = `
+    <div class="sub-card" style="margin-bottom:16px">
+      <div class="sub-card-title">SQL Translation — Presto to BigQuery</div>
+      <div style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:6px">
+        ${t.patterns_applied.map(p => `<span class="badge badge-blue">${p}</span>`).join('')}
+      </div>
+      <div class="file-tabs">${fileTabs}</div>
+      ${filePanes}
+    </div>
+    <div class="grid-2">
+      <div class="sub-card">
+        <div class="sub-card-title">UDF Classification</div>
+        <div class="bar-chart">
+          <div class="bar-row">
+            <div class="bar-label">SQL UDFs</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${u.sql_udfs/u.total_udfs*100}%;background:var(--green)">${u.sql_udfs}</div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">JavaScript UDFs</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${Math.max(u.js_udfs/u.total_udfs*100,2)}%;background:var(--blue)">${u.js_udfs}</div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">Cloud Run (Remote)</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${u.cloud_run_udfs/u.total_udfs*100}%;background:var(--orange)">${u.cloud_run_udfs}</div></div>
+          </div>
+        </div>
+        <table class="data-table" style="margin-top:12px">
+          <thead><tr><th>UDF</th><th>Category</th></tr></thead>
+          <tbody>${Object.entries(u.classifications).map(([name, cat]) => {
+            const color = cat === 'SQL_UDF' ? 'green' : cat === 'JS_UDF' ? 'blue' : 'orange';
+            return `<tr><td class="mono">${name}</td><td><span class="badge badge-${color}">${cat}</span></td></tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>
+      <div class="sub-card">
+        <div class="sub-card-title">Co-Migration Batches (MAP/CASCADE)</div>
+        <div style="margin-bottom:12px;color:var(--text-muted);font-size:13px">
+          ${m.total_maps} dependency maps &middot; max cascade depth: ${m.cascade_depth}
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Batch</th><th>Tables</th></tr></thead>
+          <tbody>${m.co_migration_batches.map((batch, i) =>
+            `<tr><td style="font-weight:600">#${i+1}</td><td class="mono">${batch.join(', ')}</td></tr>`
+          ).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function renderM3(data) {
+  const e = data.egress_cost;
+  const c = data.cutover;
+
+  document.getElementById('m3-badges').innerHTML = `
+    <span class="badge badge-green">${fmtUsd(e.scenario_optimized_usd)} optimized</span>
+    <span class="badge badge-blue">${fmtBytes(e.total_size_bytes)} total</span>`;
+
+  const maxCost = e.scenario_base_usd;
+  const content = document.getElementById('m3-content');
+  content.innerHTML = `
+    <div class="grid-2">
+      <div class="sub-card">
+        <div class="sub-card-title">Egress Cost Comparison — ${fmtBytes(e.total_size_bytes)}</div>
+        <div class="bar-chart">
+          <div class="bar-row">
+            <div class="bar-label">Base (no credits)</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${e.scenario_base_usd/maxCost*100}%;background:var(--red)">${fmtUsd(e.scenario_base_usd)}</div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">With ${e.credit_percentage}% credits</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${e.scenario_with_credits_usd/maxCost*100}%;background:var(--yellow)">${fmtUsd(e.scenario_with_credits_usd)}</div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">Optimized</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${e.scenario_optimized_usd/maxCost*100}%;background:var(--green)">${fmtUsd(e.scenario_optimized_usd)}</div></div>
+          </div>
+        </div>
+        <div style="margin-top:16px;color:var(--green);font-size:14px;font-weight:600">
+          Savings: ${fmtUsd(e.scenario_base_usd - e.scenario_optimized_usd)} (${((1 - e.scenario_optimized_usd/e.scenario_base_usd)*100).toFixed(0)}% reduction)
+        </div>
+      </div>
+      <div class="sub-card">
+        <div class="sub-card-title">Streaming Cutover</div>
+        <table class="data-table">
+          <tbody>
+            <tr><td style="color:var(--text-muted)">Job ID</td><td class="mono">${c.job_id}</td></tr>
+            <tr><td style="color:var(--text-muted)">Source</td><td class="mono">${c.source_topic}</td></tr>
+            <tr><td style="color:var(--text-muted)">Target</td><td class="mono" style="word-break:break-all">${c.target_topic}</td></tr>
+            <tr><td style="color:var(--text-muted)">Status</td><td><span class="badge badge-yellow">${c.status.replace('StreamingJobStatus.','')}</span></td></tr>
+            <tr><td style="color:var(--text-muted)">Lag at Cutover</td><td>${c.lag_at_cutover} messages</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function renderM4(data) {
+  const p = data.plan;
+  const rh = data.rollback_healthy;
+  const rc = data.rollback_critical;
+  const g = data.gate;
+  const d = data.dashboards;
+  const k = data.kpis;
+
+  document.getElementById('m4-badges').innerHTML = `
+    <span class="badge badge-blue">${p.total_waves} waves</span>
+    <span class="badge badge-green">${k.matched}/${k.total_kpis} KPIs matched</span>`;
+
+  const content = document.getElementById('m4-content');
+  content.innerHTML = `
+    <div class="sub-card" style="margin-bottom:16px">
+      <div class="sub-card-title">Wave Plan — ${p.total_tables} tables across ${p.total_waves} waves</div>
+      <table class="data-table">
+        <thead><tr><th>Wave</th><th>Name</th><th>LOB</th><th class="right">Tables</th><th class="right">Est. Days</th></tr></thead>
+        <tbody>${p.waves.map(w => `
+          <tr>
+            <td class="mono">${w.wave_id}</td>
+            <td>${w.name}</td>
+            <td><span class="badge badge-blue">${w.lob}</span></td>
+            <td class="right">${w.table_count}</td>
+            <td class="right">${w.estimated_days}</td>
+          </tr>`).join('')}</tbody>
+      </table>
+    </div>
+    <div class="sub-card" style="margin-bottom:16px">
+      <div class="sub-card-title">Rollback Evaluation</div>
+      <div class="rollback-grid">
+        <div class="rollback-card safe">
+          <div class="rollback-title"><span class="status-dot green"></span>Healthy — No Rollback Needed</div>
+          ${rh.conditions.map(c => `
+            <div class="condition-row">
+              <span>${c.name}</span>
+              <span class="badge ${c.triggered ? 'badge-red' : 'badge-green'}">${c.triggered ? 'Triggered' : 'OK'}</span>
+            </div>`).join('')}
+        </div>
+        <div class="rollback-card danger">
+          <div class="rollback-title"><span class="status-dot red"></span>Critical — Rollback Recommended</div>
+          ${rc.conditions.map(c => `
+            <div class="condition-row">
+              <span>${c.name}</span>
+              <span class="badge ${c.triggered ? 'badge-red' : 'badge-green'}">${c.triggered ? 'Triggered' : 'OK'}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="grid-3">
+      <div class="sub-card">
+        <div class="sub-card-title">Wave Gate</div>
+        <div style="margin-bottom:12px">
+          <span class="badge ${g.passed ? 'badge-green' : 'badge-red'}">${g.passed ? 'PASSED' : 'FAILED'}</span>
+        </div>
+        ${g.criteria_met.length ? `<div style="font-size:12px;color:var(--green);margin-bottom:4px">Met: ${g.criteria_met.join(', ')}</div>` : ''}
+        ${g.criteria_failed.length ? `<div style="font-size:12px;color:var(--red)">Failed: ${g.criteria_failed.join(', ')}</div>` : ''}
+      </div>
+      <div class="sub-card">
+        <div class="sub-card-title">Dashboard Migration</div>
+        <div style="font-size:28px;font-weight:700;color:var(--green)">${d.dashboards_migrated}</div>
+        <div style="color:var(--text-muted);font-size:13px;margin-bottom:8px">${d.dashboards_failed} failed</div>
+        ${d.details.map(dd => `<div style="font-size:13px;padding:3px 0"><span class="status-dot ${dd.status==='migrated'?'green':'red'}"></span>${dd.name}</div>`).join('')}
+      </div>
+      <div class="sub-card">
+        <div class="sub-card-title">KPI Reconciliation</div>
+        <div style="font-size:28px;font-weight:700;color:var(--green)">${k.matched}/${k.total_kpis}</div>
+        <div style="color:var(--text-muted);font-size:13px;margin-bottom:8px">KPIs matched</div>
+        ${k.details.map(dd => `<div style="font-size:13px;padding:3px 0"><span class="status-dot ${dd.status==='matched'?'green':'red'}"></span>${dd.name}</div>`).join('')}
+      </div>
+    </div>`;
+}
+
+function renderM5(data) {
+  const dg = data.dag_rewrite;
+  const ka = data.kafka;
+  const la = data.lambdas;
+  const ia = data.iam;
+
+  document.getElementById('m5-badges').innerHTML = `
+    <span class="badge badge-green">${dg.dags_rewritten} DAGs rewritten</span>
+    <span class="badge badge-blue">${ia.policies_mapped} IAM policies</span>`;
+
+  const content = document.getElementById('m5-content');
+  content.innerHTML = `
+    <div class="grid-2" style="margin-bottom:16px">
+      <div class="sub-card">
+        <div class="sub-card-title">Airflow DAG Rewrite</div>
+        <div style="display:flex;gap:32px;margin-bottom:14px">
+          <div><span style="font-size:28px;font-weight:700;color:var(--accent-light)">${dg.dags_processed}</span><div style="font-size:11px;color:var(--text-muted)">DAGs processed</div></div>
+          <div><span style="font-size:28px;font-weight:700;color:var(--green)">${dg.dags_rewritten}</span><div style="font-size:11px;color:var(--text-muted)">DAGs rewritten</div></div>
+          <div><span style="font-size:28px;font-weight:700;color:var(--orange)">${dg.operators_replaced}</span><div style="font-size:11px;color:var(--text-muted)">operators replaced</div></div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Change</th><th>Detail</th></tr></thead>
+          <tbody>${dg.changes.map(c => {
+            const shortFile = c.file.split('/').pop();
+            return `<tr><td class="mono" style="font-size:11px">${shortFile}</td><td style="font-size:12px">${c.change}</td></tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>
+      <div class="sub-card">
+        <div class="sub-card-title">Lambda Functions</div>
+        <div style="display:flex;gap:32px;margin-bottom:14px">
+          <div><span style="font-size:28px;font-weight:700;color:var(--accent-light)">${la.functions_processed}</span><div style="font-size:11px;color:var(--text-muted)">processed</div></div>
+          <div><span style="font-size:28px;font-weight:700;color:var(--yellow)">${la.functions_rewritten}</span><div style="font-size:11px;color:var(--text-muted)">need rewrite</div></div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Function</th><th>Status</th></tr></thead>
+          <tbody>${la.details.map(d => {
+            const badge = d.status === 'needs_rewrite' ? 'badge-yellow' : 'badge-green';
+            return `<tr><td class="mono">${d.function}</td><td><span class="badge ${badge}">${d.status}</span></td></tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="sub-card">
+        <div class="sub-card-title">Kafka Topic Migration</div>
+        <div style="display:flex;gap:32px;margin-bottom:14px">
+          <div><span style="font-size:28px;font-weight:700;color:var(--green)">${ka.topics_migrated}</span><div style="font-size:11px;color:var(--text-muted)">topics migrated</div></div>
+          <div><span style="font-size:28px;font-weight:700;color:var(--blue)">${ka.schemas_updated}</span><div style="font-size:11px;color:var(--text-muted)">schemas updated</div></div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Topic</th><th>Status</th></tr></thead>
+          <tbody>${ka.details.map(d =>
+            `<tr><td class="mono">${d.topic}</td><td><span class="badge badge-green">${d.status}</span></td></tr>`
+          ).join('')}</tbody>
+        </table>
+      </div>
+      <div class="sub-card">
+        <div class="sub-card-title">IAM Permission Mapping</div>
+        <div style="margin-bottom:14px"><span style="font-size:28px;font-weight:700;color:var(--accent-light)">${ia.policies_mapped}</span>
+          <span style="font-size:13px;color:var(--text-muted);margin-left:8px">policies mapped</span></div>
+        <table class="data-table">
+          <thead><tr><th>Permission</th><th>Resource</th><th>BigQuery Role</th></tr></thead>
+          <tbody>${ia.mappings.map(m =>
+            `<tr><td><span class="badge badge-blue">${m.lake_formation_permission}</span></td>
+            <td class="mono" style="font-size:11px">${m.resource}</td>
+            <td class="mono" style="font-size:11px">${m.bigquery_role.replace('roles/bigquery.','bq.')}</td></tr>`
+          ).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function switchFile(idx) {
+  document.querySelectorAll('.file-tab').forEach((t,i) => t.classList.toggle('active', i===idx));
+  document.querySelectorAll('.file-pane').forEach(p => p.style.display = parseInt(p.dataset.idx)===idx ? 'block' : 'none');
+}
+
+function switchDiff(btn, type, fileIdx) {
+  const container = btn.closest('.diff-container');
+  container.querySelectorAll('.diff-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  container.querySelectorAll('.diff-pane').forEach(p => {
+    p.classList.toggle('active', p.dataset.type === type);
+    p.style.display = p.dataset.type === type ? 'block' : 'none';
+  });
+}
+
+async function runDemo() {
+  const btn = document.getElementById('runBtn');
+  const overlay = document.getElementById('loadingOverlay');
+  const fill = document.getElementById('loadingFill');
+  const text = document.getElementById('loadingText');
+
+  btn.classList.add('loading');
+  btn.disabled = true;
+  overlay.classList.add('show');
+
+  const steps = [
+    [10, 'Generating Terraform scaffold...'],
+    [25, 'Classifying table tiers...'],
+    [40, 'Translating Presto SQL to BigQuery...'],
+    [55, 'Modeling egress costs...'],
+    [70, 'Planning migration waves...'],
+    [85, 'Rewriting Airflow DAGs...'],
+    [95, 'Mapping IAM permissions...'],
+  ];
+  let stepIdx = 0;
+  const timer = setInterval(() => {
+    if (stepIdx < steps.length) {
+      fill.style.width = steps[stepIdx][0] + '%';
+      text.textContent = steps[stepIdx][1];
+      stepIdx++;
+    }
+  }, 400);
+
+  try {
+    const res = await fetch('/api/demo/run');
+    const data = await res.json();
+
+    clearInterval(timer);
+    fill.style.width = '100%';
+    text.textContent = 'Complete!';
+
+    await new Promise(r => setTimeout(r, 500));
+
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+
+    renderMetrics(data);
+    renderM1(data.foundation);
+    renderM2(data.sql);
+    renderM3(data.transfer);
+    renderM4(data.wave);
+    renderM5(data.dependency);
+
+  } catch (err) {
+    clearInterval(timer);
+    text.textContent = 'Error: ' + err.message;
+    fill.style.background = 'var(--red)';
+    fill.style.width = '100%';
+    await new Promise(r => setTimeout(r, 2000));
+  }
+
+  overlay.classList.remove('show');
+  btn.classList.remove('loading');
+  btn.disabled = false;
+}
+</script>
+</body>
+</html>

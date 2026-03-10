@@ -1,0 +1,8 @@
+{
+  "dvt_row_count_match": true,
+  "dvt_column_aggregates_match": true,
+  "no_data_loss_detected": true,
+  "latency_within_sla": true,
+  "rollback_plan_documented": true,
+  "stakeholder_sign_off": false
+}

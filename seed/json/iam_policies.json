@@ -1,0 +1,27 @@
+[
+  {
+    "permission": "SELECT",
+    "resource": "analytics.daily_revenue",
+    "principal": "arn:aws:iam::123456789012:role/DataAnalystRole"
+  },
+  {
+    "permission": "ALL",
+    "resource": "analytics.campaign_events",
+    "principal": "arn:aws:iam::123456789012:role/MarketingDataRole"
+  },
+  {
+    "permission": "SELECT",
+    "resource": "analytics.user_events",
+    "principal": "arn:aws:iam::123456789012:role/ProductAnalyticsRole"
+  },
+  {
+    "permission": "INSERT",
+    "resource": "analytics.revenue_summary",
+    "principal": "arn:aws:iam::123456789012:role/ETLServiceRole"
+  },
+  {
+    "permission": "DROP",
+    "resource": "analytics.legacy_batch_results",
+    "principal": "arn:aws:iam::123456789012:role/AdminRole"
+  }
+]

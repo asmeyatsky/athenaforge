@@ -1,0 +1,23 @@
+[
+  {
+    "topic": "user-click-events",
+    "partitions": 12,
+    "replication_factor": 3,
+    "schema": "avro",
+    "schema_registry": "https://schema-registry.acme.internal:8081"
+  },
+  {
+    "topic": "order-completed",
+    "partitions": 6,
+    "replication_factor": 3,
+    "schema": "protobuf",
+    "schema_registry": "https://schema-registry.acme.internal:8081"
+  },
+  {
+    "topic": "inventory-updates",
+    "partitions": 3,
+    "replication_factor": 2,
+    "schema": "json",
+    "schema_registry": null
+  }
+]
