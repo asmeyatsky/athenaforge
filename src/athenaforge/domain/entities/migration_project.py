@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
+from typing import Self
 
 from athenaforge.domain.events.event_base import DomainEvent
 from athenaforge.domain.events.foundation_events import ScaffoldGenerated
+from athenaforge.domain.value_objects.status import ProjectStatus
 
 
 @dataclass(frozen=True)
@@ -15,31 +17,33 @@ class MigrationProject:
     gcp_project_id: str
     aws_region: str
     lobs: tuple[str, ...] = ()
-    status: str = "initialized"
-    _events: list[DomainEvent] = field(default_factory=list, repr=False)
+    status: ProjectStatus = ProjectStatus.INITIALIZED
+    _events: tuple[DomainEvent, ...] = field(default=(), repr=False)
 
     # ── commands ────────────────────────────────────────────────
 
     def add_lob(self, lob_name: str) -> MigrationProject:
         """Return a new project with *lob_name* appended to the LOB list."""
-        new_project = replace(self, lobs=(*self.lobs, lob_name))
-        new_project._events.append(
-            ScaffoldGenerated(
-                aggregate_id=self.project_id,
-                lob_name=lob_name,
-            )
+        event = ScaffoldGenerated(
+            aggregate_id=self.project_id,
+            lob_name=lob_name,
         )
-        return new_project
+        return replace(
+            self,
+            lobs=(*self.lobs, lob_name),
+            _events=self._events + (event,),
+        )
 
     def start_scaffolding(self) -> MigrationProject:
         """Transition the project into the scaffolding phase."""
-        new_project = replace(self, status="scaffolding")
-        return new_project
+        return replace(self, status=ProjectStatus.SCAFFOLDING)
 
     # ── event harvesting ────────────────────────────────────────
 
-    def collect_events(self) -> list[DomainEvent]:
-        """Return accumulated events and clear the internal list."""
-        events = list(self._events)
-        self._events.clear()
-        return events
+    def collect_events(self) -> tuple[DomainEvent, ...]:
+        """Return accumulated events."""
+        return self._events
+
+    def clear_events(self) -> Self:
+        """Return a new instance with an empty events tuple."""
+        return replace(self, _events=())

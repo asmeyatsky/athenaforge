@@ -1,24 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from typing import Protocol
 
 from athenaforge.application.dtos.wave_dtos import ParallelRunResult
-from athenaforge.domain.entities.wave import Wave
 from athenaforge.domain.events.wave_events import ParallelRunModeChanged
 from athenaforge.domain.ports.event_bus import EventBusPort
+from athenaforge.domain.ports.repository_ports import WaveRepositoryPort
 from athenaforge.domain.services.parallel_running_state_machine import (
     ParallelRunningStateMachine,
 )
 from athenaforge.domain.value_objects.wave import ParallelRunMode
-
-
-class WaveRepositoryPort(Protocol):
-    """Combined read/write repository for Wave entities."""
-
-    async def get_by_id(self, id: str) -> Wave | None: ...
-
-    async def save(self, entity: Wave) -> None: ...
 
 
 class ControlParallelRunUseCase:

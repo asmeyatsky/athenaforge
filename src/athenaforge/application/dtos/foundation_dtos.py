@@ -44,3 +44,11 @@ class TierSummaryDTO:
     tier2_size_bytes: int
     tier3_count: int
     tier3_size_bytes: int
+
+
+@dataclass(frozen=True)
+class DataplexBootstrapResult:
+    lakes_created: list[str]
+    zones_per_lake: int
+    dlp_scans_scheduled: int
+    policy_tags_applied: int

@@ -35,3 +35,10 @@ class ValidationReport:
     failed: int
     total_bytes_scanned: int
     failures: list[dict[str, str]]  # list of {query_path, error}
+
+
+@dataclass(frozen=True)
+class CaseNormalisationResult:
+    original_sql: str
+    normalised_sql: str
+    columns_normalised: int

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 
@@ -23,7 +23,7 @@ def sample_lob():
     return LOB(
         name="payments",
         owner="payments-team",
-        datasets=["raw_payments", "curated_payments"],
+        datasets=("raw_payments", "curated_payments"),
     )
 
 
@@ -34,7 +34,7 @@ def sample_table_entry():
         database="payments_db",
         size_bytes=500_000_000_000,  # 500GB
         row_count=1_000_000_000,
-        last_queried=datetime.utcnow() - timedelta(days=30),
+        last_queried=datetime.now(timezone.utc) - timedelta(days=30),
         partitioned=True,
         format="PARQUET",
         has_maps=False,

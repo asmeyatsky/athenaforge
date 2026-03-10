@@ -43,16 +43,33 @@ class WaveExecutionWorkflow:
         self._cutover_uc = cutover_uc
         self._gate_uc = gate_uc
 
-    def build(self, wave_id: str) -> DAGOrchestrator:
+    def build(
+        self,
+        wave_id: str,
+        *,
+        table_pairs: list[tuple[str, str]] | None = None,
+        dvt_tier: str = "tier1",
+        gate_criteria: dict | None = None,
+    ) -> DAGOrchestrator:
         """Create and return a DAG orchestrator for a single wave."""
+        _table_pairs = table_pairs if table_pairs is not None else []
+        _gate_criteria = gate_criteria if gate_criteria is not None else {
+            "dvt_pass_30_days": False,
+            "sla_compliance_14_days": False,
+            "dashboard_parity": False,
+            "zero_athena_queries_14_days": False,
+            "bq_spend_within_15pct": False,
+            "written_signoff": False,
+        }
+
         orchestrator = DAGOrchestrator()
 
         # Step 1: shadow_run — start parallel run in shadow mode
         orchestrator.add_step(
             WorkflowStep(
                 name="shadow_run",
-                execute=lambda: self._parallel_run_uc.execute(
-                    wave_id, "shadow",
+                execute=lambda wid=wave_id: self._parallel_run_uc.execute(
+                    wid, "shadow",
                 ),
                 depends_on=[],
                 is_critical=True,
@@ -63,9 +80,9 @@ class WaveExecutionWorkflow:
         orchestrator.add_step(
             WorkflowStep(
                 name="dvt_shadow",
-                execute=lambda: self._dvt_uc.execute(
-                    tier="tier1",
-                    table_pairs=[],
+                execute=lambda t=dvt_tier, tp=_table_pairs: self._dvt_uc.execute(
+                    tier=t,
+                    table_pairs=tp,
                 ),
                 depends_on=["shadow_run"],
                 is_critical=True,
@@ -76,8 +93,8 @@ class WaveExecutionWorkflow:
         orchestrator.add_step(
             WorkflowStep(
                 name="reverse_shadow",
-                execute=lambda: self._parallel_run_uc.execute(
-                    wave_id, "reverse_shadow",
+                execute=lambda wid=wave_id: self._parallel_run_uc.execute(
+                    wid, "reverse_shadow",
                 ),
                 depends_on=["dvt_shadow"],
                 is_critical=True,
@@ -88,9 +105,9 @@ class WaveExecutionWorkflow:
         orchestrator.add_step(
             WorkflowStep(
                 name="dvt_reverse",
-                execute=lambda: self._dvt_uc.execute(
-                    tier="tier1",
-                    table_pairs=[],
+                execute=lambda t=dvt_tier, tp=_table_pairs: self._dvt_uc.execute(
+                    tier=t,
+                    table_pairs=tp,
                 ),
                 depends_on=["reverse_shadow"],
                 is_critical=True,
@@ -101,10 +118,10 @@ class WaveExecutionWorkflow:
         orchestrator.add_step(
             WorkflowStep(
                 name="cutover",
-                execute=lambda: self._cutover_uc.execute(
-                    job_id=wave_id,
-                    source_topic=f"{wave_id}-source",
-                    target_topic=f"{wave_id}-target",
+                execute=lambda wid=wave_id: self._cutover_uc.execute(
+                    job_id=wid,
+                    source_topic=f"{wid}-source",
+                    target_topic=f"{wid}-target",
                 ),
                 depends_on=["dvt_reverse"],
                 is_critical=True,
@@ -115,9 +132,9 @@ class WaveExecutionWorkflow:
         orchestrator.add_step(
             WorkflowStep(
                 name="gate_check",
-                execute=lambda: self._gate_uc.execute(
-                    wave_id=wave_id,
-                    criteria={},
+                execute=lambda wid=wave_id, gc=_gate_criteria: self._gate_uc.execute(
+                    wave_id=wid,
+                    criteria=gc,
                 ),
                 depends_on=["cutover"],
                 is_critical=True,

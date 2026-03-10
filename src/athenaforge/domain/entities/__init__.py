@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from athenaforge.domain.entities.migration_project import MigrationProject
 from athenaforge.domain.entities.streaming_job import StreamingJob
 from athenaforge.domain.entities.table_inventory import TableEntry, TableInventory

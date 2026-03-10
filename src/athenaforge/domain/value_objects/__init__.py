@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from athenaforge.domain.value_objects.cost import (
     CostEstimate,
     Currency,
@@ -10,6 +12,13 @@ from athenaforge.domain.value_objects.sql_pattern import (
     PatternCategory,
     PatternExample,
     SqlTranslationPattern,
+)
+from athenaforge.domain.value_objects.status import (
+    BatchStatus,
+    FileStatus,
+    ProjectStatus,
+    StreamingJobStatus,
+    TransferStatus,
 )
 from athenaforge.domain.value_objects.tier import Tier, TierClassification
 from athenaforge.domain.value_objects.validation_result import (
@@ -24,9 +33,11 @@ from athenaforge.domain.value_objects.wave import (
 )
 
 __all__ = [
+    "BatchStatus",
     "CostEstimate",
     "Currency",
     "DependencyRef",
+    "FileStatus",
     "JobType",
     "LOB",
     "LOBManifest",
@@ -34,11 +45,14 @@ __all__ = [
     "ParallelRunMode",
     "PatternCategory",
     "PatternExample",
+    "ProjectStatus",
     "Severity",
     "SlotReservation",
     "SqlTranslationPattern",
+    "StreamingJobStatus",
     "Tier",
     "TierClassification",
+    "TransferStatus",
     "ValidationIssue",
     "ValidationResult",
     "WaveDefinition",

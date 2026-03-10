@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import Protocol, TypeVar
+from typing import TYPE_CHECKING, Protocol, TypeVar
+
+if TYPE_CHECKING:
+    from athenaforge.domain.entities.wave import Wave
 
 T = TypeVar("T")
 
@@ -19,3 +22,11 @@ class WriteRepositoryPort(Protocol[T]):
     async def save(self, entity: T) -> None: ...
 
     async def delete(self, id: str) -> None: ...
+
+
+class WaveRepositoryPort(Protocol):
+    """Combined read/write repository for Wave entities."""
+
+    async def get_by_id(self, id: str) -> Wave | None: ...
+
+    async def save(self, entity: Wave) -> None: ...

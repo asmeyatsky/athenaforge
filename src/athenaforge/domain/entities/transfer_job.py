@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import Self
 
 from athenaforge.domain.events.event_base import DomainEvent
-from athenaforge.domain.events.transfer_events import (
-    TransferJobCompleted,
-    TransferJobCreated,
-)
+from athenaforge.domain.events.transfer_events import TransferJobCompleted
+from athenaforge.domain.value_objects.status import TransferStatus
 
 
 @dataclass(frozen=True)
@@ -19,9 +18,9 @@ class TransferJob:
     destination_bucket: str
     total_bytes: int
     bytes_transferred: int = 0
-    status: str = "pending"
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    _events: list[DomainEvent] = field(default_factory=list, repr=False)
+    status: TransferStatus = TransferStatus.PENDING
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    _events: tuple[DomainEvent, ...] = field(default=(), repr=False)
 
     # ── queries ─────────────────────────────────────────────────
 
@@ -36,29 +35,28 @@ class TransferJob:
 
     def mark_completed(self, bytes_transferred: int) -> TransferJob:
         """Return a new job marked as completed with the final byte count."""
-        completed = replace(
-            self,
-            status="completed",
+        event = TransferJobCompleted(
+            aggregate_id=self.job_id,
+            job_id=self.job_id,
             bytes_transferred=bytes_transferred,
         )
-        completed._events.append(
-            TransferJobCompleted(
-                aggregate_id=self.job_id,
-                job_id=self.job_id,
-                bytes_transferred=bytes_transferred,
-            )
+        return replace(
+            self,
+            status=TransferStatus.COMPLETED,
+            bytes_transferred=bytes_transferred,
+            _events=self._events + (event,),
         )
-        return completed
 
     def mark_failed(self, error: str) -> TransferJob:
         """Return a new job marked as failed."""
-        failed = replace(self, status="failed")
-        return failed
+        return replace(self, status=TransferStatus.FAILED)
 
     # ── event harvesting ────────────────────────────────────────
 
-    def collect_events(self) -> list[DomainEvent]:
-        """Return accumulated events and clear the internal list."""
-        events = list(self._events)
-        self._events.clear()
-        return events
+    def collect_events(self) -> tuple[DomainEvent, ...]:
+        """Return accumulated events."""
+        return self._events
+
+    def clear_events(self) -> Self:
+        """Return a new instance with an empty events tuple."""
+        return replace(self, _events=())

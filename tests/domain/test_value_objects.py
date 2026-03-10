@@ -144,7 +144,7 @@ class TestPatternCategory:
         assert PatternCategory.OTHER.value == "OTHER"
 
     def test_all_members(self) -> None:
-        assert len(PatternCategory) == 14
+        assert len(PatternCategory) == 30
 
 
 # ---------------------------------------------------------------------------

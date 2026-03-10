@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
 
@@ -11,7 +11,7 @@ class DomainEvent:
 
     aggregate_id: str
     event_id: str = field(default_factory=lambda: uuid4().hex)
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     event_type: str = field(default="")
 
     def __post_init__(self) -> None:

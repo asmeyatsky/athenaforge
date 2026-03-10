@@ -1,3 +1,12 @@
+# =============================================================================
+# Presto/Athena to BigQuery (GoogleSQL) Translation Pattern Library
+# 90+ patterns covering common Presto→BigQuery SQL translations
+# =============================================================================
+
+# =============================================================================
+# MAP_CONSTRUCTOR (2 patterns)
+# =============================================================================
+
 - name: map_constructor_to_struct
   category: MAP_CONSTRUCTOR
   description: "Convert Presto MAP(ARRAY[...], ARRAY[...]) constructor to BigQuery STRUCT syntax"
@@ -15,6 +24,10 @@
   examples:
     - presto_sql: "SELECT MAP()"
       googlesql: "SELECT STRUCT()"
+
+# =============================================================================
+# TRANSFORM (2 patterns)
+# =============================================================================
 
 - name: transform_array
   category: TRANSFORM
@@ -34,6 +47,10 @@
     - presto_sql: "SELECT TRANSFORM(ids, x -> CAST(x AS VARCHAR))"
       googlesql: "SELECT ARRAY(SELECT CAST(x AS VARCHAR) FROM UNNEST(ids) AS x)"
 
+# =============================================================================
+# FILTER (1 pattern)
+# =============================================================================
+
 - name: filter_array
   category: FILTER
   description: "Convert Presto FILTER(array, lambda) to BigQuery ARRAY(SELECT ... FROM UNNEST(...) WHERE ...)"
@@ -43,8 +60,12 @@
     - presto_sql: "SELECT FILTER(arr, x -> x > 10)"
       googlesql: "SELECT ARRAY(SELECT x FROM UNNEST(arr) AS x WHERE x > 10)"
 
+# =============================================================================
+# DATE_FUNCTIONS (20 patterns)
+# =============================================================================
+
 - name: date_trunc
-  category: DATE_TRUNC
+  category: DATE_FUNCTIONS
   description: "Convert Presto DATE_TRUNC('unit', expr) to BigQuery DATE_TRUNC(expr, unit)"
   presto_pattern: "\\bDATE_TRUNC\\(\\s*'(\\w+)'\\s*,\\s*([^)]+)\\)"
   googlesql_replacement: "DATE_TRUNC(\\2, \\1)"
@@ -53,13 +74,179 @@
       googlesql: "SELECT DATE_TRUNC(order_date, MONTH)"
 
 - name: date_add
-  category: DATE_ADD
+  category: DATE_FUNCTIONS
   description: "Convert Presto DATE_ADD('unit', amount, expr) to BigQuery DATE_ADD(expr, INTERVAL amount unit)"
   presto_pattern: "\\bDATE_ADD\\(\\s*'(\\w+)'\\s*,\\s*(-?\\d+)\\s*,\\s*([^)]+)\\)"
   googlesql_replacement: "DATE_ADD(\\3, INTERVAL \\2 \\1)"
   examples:
     - presto_sql: "SELECT DATE_ADD('day', 7, order_date)"
       googlesql: "SELECT DATE_ADD(order_date, INTERVAL 7 DAY)"
+
+- name: date_diff
+  category: DATE_FUNCTIONS
+  description: "Convert Presto DATE_DIFF('unit', start, end) to BigQuery DATE_DIFF(end, start, unit)"
+  presto_pattern: "\\bDATE_DIFF\\(\\s*'(\\w+)'\\s*,\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "DATE_DIFF(\\3, \\2, \\1)"
+  examples:
+    - presto_sql: "SELECT DATE_DIFF('day', start_date, end_date)"
+      googlesql: "SELECT DATE_DIFF(end_date, start_date, DAY)"
+
+- name: date_format
+  category: DATE_FUNCTIONS
+  description: "Convert Presto DATE_FORMAT(timestamp, format) to BigQuery FORMAT_TIMESTAMP(format, timestamp)"
+  presto_pattern: "\\bDATE_FORMAT\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "FORMAT_TIMESTAMP(\\2, \\1)"
+  examples:
+    - presto_sql: "SELECT DATE_FORMAT(created_at, '%Y-%m-%d')"
+      googlesql: "SELECT FORMAT_TIMESTAMP('%Y-%m-%d', created_at)"
+
+- name: date_parse
+  category: DATE_FUNCTIONS
+  description: "Convert Presto DATE_PARSE(string, format) to BigQuery PARSE_TIMESTAMP(format, string)"
+  presto_pattern: "\\bDATE_PARSE\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "PARSE_TIMESTAMP(\\2, \\1)"
+  examples:
+    - presto_sql: "SELECT DATE_PARSE(date_str, '%Y-%m-%d %H:%i:%s')"
+      googlesql: "SELECT PARSE_TIMESTAMP('%Y-%m-%d %H:%i:%s', date_str)"
+
+- name: from_unixtime
+  category: DATE_FUNCTIONS
+  description: "Convert Presto FROM_UNIXTIME(epoch) to BigQuery TIMESTAMP_SECONDS(epoch)"
+  presto_pattern: "\\bFROM_UNIXTIME\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "TIMESTAMP_SECONDS(\\1)"
+  examples:
+    - presto_sql: "SELECT FROM_UNIXTIME(epoch_col)"
+      googlesql: "SELECT TIMESTAMP_SECONDS(epoch_col)"
+
+- name: to_unixtime
+  category: DATE_FUNCTIONS
+  description: "Convert Presto TO_UNIXTIME(timestamp) to BigQuery UNIX_SECONDS(timestamp)"
+  presto_pattern: "\\bTO_UNIXTIME\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "UNIX_SECONDS(\\1)"
+  examples:
+    - presto_sql: "SELECT TO_UNIXTIME(created_at)"
+      googlesql: "SELECT UNIX_SECONDS(created_at)"
+
+- name: now_function
+  category: DATE_FUNCTIONS
+  description: "Convert Presto NOW() to BigQuery CURRENT_TIMESTAMP()"
+  presto_pattern: "\\bNOW\\(\\s*\\)"
+  googlesql_replacement: "CURRENT_TIMESTAMP()"
+  examples:
+    - presto_sql: "SELECT NOW()"
+      googlesql: "SELECT CURRENT_TIMESTAMP()"
+
+- name: at_timezone
+  category: DATE_FUNCTIONS
+  description: "Convert Presto AT_TIMEZONE(timestamp, timezone) to BigQuery TIMESTAMP(timestamp, timezone)"
+  presto_pattern: "\\bAT_TIMEZONE\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "TIMESTAMP(\\1, \\2)"
+  examples:
+    - presto_sql: "SELECT AT_TIMEZONE(created_at, 'America/New_York')"
+      googlesql: "SELECT TIMESTAMP(created_at, 'America/New_York')"
+
+- name: interval_quoted
+  category: DATE_FUNCTIONS
+  description: "Convert Presto INTERVAL 'n' UNIT (quoted) to BigQuery INTERVAL n UNIT (unquoted)"
+  presto_pattern: "\\bINTERVAL\\s+'(\\d+)'\\s+(DAY|HOUR|MINUTE|SECOND|MONTH|YEAR)"
+  googlesql_replacement: "INTERVAL \\1 \\2"
+  examples:
+    - presto_sql: "SELECT created_at + INTERVAL '1' DAY"
+      googlesql: "SELECT created_at + INTERVAL 1 DAY"
+
+- name: year_extract
+  category: DATE_FUNCTIONS
+  description: "Convert Presto YEAR(date) to BigQuery EXTRACT(YEAR FROM date)"
+  presto_pattern: "\\bYEAR\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "EXTRACT(YEAR FROM \\1)"
+  examples:
+    - presto_sql: "SELECT YEAR(order_date)"
+      googlesql: "SELECT EXTRACT(YEAR FROM order_date)"
+
+- name: month_extract
+  category: DATE_FUNCTIONS
+  description: "Convert Presto MONTH(date) to BigQuery EXTRACT(MONTH FROM date)"
+  presto_pattern: "\\bMONTH\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "EXTRACT(MONTH FROM \\1)"
+  examples:
+    - presto_sql: "SELECT MONTH(order_date)"
+      googlesql: "SELECT EXTRACT(MONTH FROM order_date)"
+
+- name: day_extract
+  category: DATE_FUNCTIONS
+  description: "Convert Presto DAY(date) to BigQuery EXTRACT(DAY FROM date)"
+  presto_pattern: "\\bDAY\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "EXTRACT(DAY FROM \\1)"
+  examples:
+    - presto_sql: "SELECT DAY(order_date)"
+      googlesql: "SELECT EXTRACT(DAY FROM order_date)"
+
+- name: hour_extract
+  category: DATE_FUNCTIONS
+  description: "Convert Presto HOUR(timestamp) to BigQuery EXTRACT(HOUR FROM timestamp)"
+  presto_pattern: "\\bHOUR\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "EXTRACT(HOUR FROM \\1)"
+  examples:
+    - presto_sql: "SELECT HOUR(event_time)"
+      googlesql: "SELECT EXTRACT(HOUR FROM event_time)"
+
+- name: minute_extract
+  category: DATE_FUNCTIONS
+  description: "Convert Presto MINUTE(timestamp) to BigQuery EXTRACT(MINUTE FROM timestamp)"
+  presto_pattern: "\\bMINUTE\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "EXTRACT(MINUTE FROM \\1)"
+  examples:
+    - presto_sql: "SELECT MINUTE(event_time)"
+      googlesql: "SELECT EXTRACT(MINUTE FROM event_time)"
+
+- name: second_extract
+  category: DATE_FUNCTIONS
+  description: "Convert Presto SECOND(timestamp) to BigQuery EXTRACT(SECOND FROM timestamp)"
+  presto_pattern: "\\bSECOND\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "EXTRACT(SECOND FROM \\1)"
+  examples:
+    - presto_sql: "SELECT SECOND(event_time)"
+      googlesql: "SELECT EXTRACT(SECOND FROM event_time)"
+
+- name: day_of_week_extract
+  category: DATE_FUNCTIONS
+  description: "Convert Presto DAY_OF_WEEK(date) to BigQuery EXTRACT(DAYOFWEEK FROM date)"
+  presto_pattern: "\\bDAY_OF_WEEK\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "EXTRACT(DAYOFWEEK FROM \\1)"
+  examples:
+    - presto_sql: "SELECT DAY_OF_WEEK(order_date)"
+      googlesql: "SELECT EXTRACT(DAYOFWEEK FROM order_date)"
+
+- name: day_of_year_extract
+  category: DATE_FUNCTIONS
+  description: "Convert Presto DAY_OF_YEAR(date) to BigQuery EXTRACT(DAYOFYEAR FROM date)"
+  presto_pattern: "\\bDAY_OF_YEAR\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "EXTRACT(DAYOFYEAR FROM \\1)"
+  examples:
+    - presto_sql: "SELECT DAY_OF_YEAR(order_date)"
+      googlesql: "SELECT EXTRACT(DAYOFYEAR FROM order_date)"
+
+- name: week_extract
+  category: DATE_FUNCTIONS
+  description: "Convert Presto WEEK(date) to BigQuery EXTRACT(WEEK FROM date)"
+  presto_pattern: "\\bWEEK\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "EXTRACT(WEEK FROM \\1)"
+  examples:
+    - presto_sql: "SELECT WEEK(order_date)"
+      googlesql: "SELECT EXTRACT(WEEK FROM order_date)"
+
+- name: date_sub
+  category: DATE_FUNCTIONS
+  description: "Convert Presto DATE_ADD with negative interval to BigQuery DATE_SUB"
+  presto_pattern: "\\bDATE_ADD\\(\\s*'(\\w+)'\\s*,\\s*-(\\d+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "DATE_SUB(\\3, INTERVAL \\2 \\1)"
+  examples:
+    - presto_sql: "SELECT DATE_ADD('day', -7, order_date)"
+      googlesql: "SELECT DATE_SUB(order_date, INTERVAL 7 DAY)"
+
+# =============================================================================
+# TRY_CAST (1 pattern)
+# =============================================================================
 
 - name: try_cast
   category: TRY_CAST
@@ -70,8 +257,12 @@
     - presto_sql: "SELECT TRY_CAST(col AS INTEGER)"
       googlesql: "SELECT SAFE_CAST(col AS INTEGER)"
 
+# =============================================================================
+# REGEXP_FUNCTIONS (5 patterns)
+# =============================================================================
+
 - name: regexp_like
-  category: REGEXP_LIKE
+  category: REGEXP_FUNCTIONS
   description: "Convert Presto REGEXP_LIKE(str, pattern) to BigQuery REGEXP_CONTAINS(str, pattern)"
   presto_pattern: "\\bREGEXP_LIKE\\("
   googlesql_replacement: "REGEXP_CONTAINS("
@@ -79,14 +270,76 @@
     - presto_sql: "SELECT REGEXP_LIKE(name, '^A.*')"
       googlesql: "SELECT REGEXP_CONTAINS(name, '^A.*')"
 
+- name: regexp_extract
+  category: REGEXP_FUNCTIONS
+  description: "Convert Presto REGEXP_EXTRACT(str, pattern) to BigQuery REGEXP_EXTRACT(str, pattern)"
+  presto_pattern: "\\bREGEXP_EXTRACT\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "REGEXP_EXTRACT(\\1, \\2)"
+  examples:
+    - presto_sql: "SELECT REGEXP_EXTRACT(url, '://([^/]+)')"
+      googlesql: "SELECT REGEXP_EXTRACT(url, '://([^/]+)')"
+
+- name: regexp_extract_all
+  category: REGEXP_FUNCTIONS
+  description: "Convert Presto REGEXP_EXTRACT_ALL(str, pattern) to BigQuery REGEXP_EXTRACT_ALL(str, pattern)"
+  presto_pattern: "\\bREGEXP_EXTRACT_ALL\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "REGEXP_EXTRACT_ALL(\\1, \\2)"
+  examples:
+    - presto_sql: "SELECT REGEXP_EXTRACT_ALL(text, '\\d+')"
+      googlesql: "SELECT REGEXP_EXTRACT_ALL(text, '\\d+')"
+
+- name: regexp_replace
+  category: REGEXP_FUNCTIONS
+  description: "Convert Presto REGEXP_REPLACE(str, pattern, replacement) to BigQuery REGEXP_REPLACE (note: Java regex to RE2)"
+  presto_pattern: "\\bREGEXP_REPLACE\\(\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "REGEXP_REPLACE(\\1, \\2, \\3)"
+  examples:
+    - presto_sql: "SELECT REGEXP_REPLACE(phone, '[^0-9]', '')"
+      googlesql: "SELECT REGEXP_REPLACE(phone, '[^0-9]', '')"
+
+- name: regexp_count
+  category: REGEXP_FUNCTIONS
+  description: "Convert Presto REGEXP_COUNT(str, pattern) to BigQuery ARRAY_LENGTH(REGEXP_EXTRACT_ALL(str, pattern))"
+  presto_pattern: "\\bREGEXP_COUNT\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "ARRAY_LENGTH(REGEXP_EXTRACT_ALL(\\1, \\2))"
+  examples:
+    - presto_sql: "SELECT REGEXP_COUNT(text, '\\bthe\\b')"
+      googlesql: "SELECT ARRAY_LENGTH(REGEXP_EXTRACT_ALL(text, '\\bthe\\b'))"
+
+# =============================================================================
+# APPROX_FUNCTIONS (3 patterns)
+# =============================================================================
+
 - name: approx_distinct
-  category: APPROX_DISTINCT
+  category: APPROX_FUNCTIONS
   description: "Convert Presto APPROX_DISTINCT(expr) to BigQuery APPROX_COUNT_DISTINCT(expr)"
   presto_pattern: "\\bAPPROX_DISTINCT\\("
   googlesql_replacement: "APPROX_COUNT_DISTINCT("
   examples:
     - presto_sql: "SELECT APPROX_DISTINCT(user_id)"
       googlesql: "SELECT APPROX_COUNT_DISTINCT(user_id)"
+
+- name: approx_percentile
+  category: APPROX_FUNCTIONS
+  description: "Convert Presto APPROX_PERCENTILE(col, pct) to BigQuery APPROX_QUANTILES(col, 100)[OFFSET(CAST(pct * 100 AS INT64))]"
+  presto_pattern: "\\bAPPROX_PERCENTILE\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "APPROX_QUANTILES(\\1, 100)[OFFSET(CAST(\\2 * 100 AS INT64))]"
+  examples:
+    - presto_sql: "SELECT APPROX_PERCENTILE(latency, 0.95)"
+      googlesql: "SELECT APPROX_QUANTILES(latency, 100)[OFFSET(CAST(0.95 * 100 AS INT64))]"
+
+- name: histogram
+  category: APPROX_FUNCTIONS
+  description: "Convert Presto HISTOGRAM(col) to BigQuery APPROX_TOP_COUNT(col, 100)"
+  presto_pattern: "\\bHISTOGRAM\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "APPROX_TOP_COUNT(\\1, 100)"
+  examples:
+    - presto_sql: "SELECT HISTOGRAM(category)"
+      googlesql: "SELECT APPROX_TOP_COUNT(category, 100)"
+
+# =============================================================================
+# ARBITRARY (1 pattern)
+# =============================================================================
 
 - name: arbitrary
   category: ARBITRARY
@@ -97,6 +350,10 @@
     - presto_sql: "SELECT ARBITRARY(name) FROM users GROUP BY dept"
       googlesql: "SELECT ANY_VALUE(name) FROM users GROUP BY dept"
 
+# =============================================================================
+# CONTAINS (1 pattern)
+# =============================================================================
+
 - name: contains_function
   category: CONTAINS
   description: "Convert Presto CONTAINS(array, element) to BigQuery expression using IN with UNNEST"
@@ -105,6 +362,10 @@
   examples:
     - presto_sql: "SELECT CONTAINS(tags, 'urgent')"
       googlesql: "SELECT ('urgent' IN UNNEST(tags))"
+
+# =============================================================================
+# MAP_KEYS / MAP_VALUES (2 patterns)
+# =============================================================================
 
 - name: map_keys
   category: MAP_KEYS
@@ -123,3 +384,883 @@
   examples:
     - presto_sql: "SELECT MAP_VALUES(attributes)"
       googlesql: "SELECT ARRAY(SELECT value FROM UNNEST(attributes))"
+
+# =============================================================================
+# STRING_FUNCTIONS (10 patterns)
+# =============================================================================
+
+- name: codepoint
+  category: STRING_FUNCTIONS
+  description: "Convert Presto CODEPOINT(str) to BigQuery TO_CODE_POINTS(str)[OFFSET(0)]"
+  presto_pattern: "\\bCODEPOINT\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "TO_CODE_POINTS(\\1)[OFFSET(0)]"
+  examples:
+    - presto_sql: "SELECT CODEPOINT('A')"
+      googlesql: "SELECT TO_CODE_POINTS('A')[OFFSET(0)]"
+
+- name: split_with_limit
+  category: STRING_FUNCTIONS
+  description: "Convert Presto SPLIT(str, delim, limit) to BigQuery workaround with SPLIT and ARRAY subscript"
+  presto_pattern: "\\bSPLIT\\(\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*(\\d+)\\s*\\)"
+  googlesql_replacement: "ARRAY(SELECT x FROM UNNEST(SPLIT(\\1, \\2)) AS x WITH OFFSET WHERE OFFSET < \\3)"
+  examples:
+    - presto_sql: "SELECT SPLIT(path, '/', 3)"
+      googlesql: "SELECT ARRAY(SELECT x FROM UNNEST(SPLIT(path, '/')) AS x WITH OFFSET WHERE OFFSET < 3)"
+
+- name: strpos
+  category: STRING_FUNCTIONS
+  description: "Convert Presto STRPOS(str, substr) to BigQuery STRPOS(str, substr) — compatible"
+  presto_pattern: "\\bSTRPOS\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "STRPOS(\\1, \\2)"
+  examples:
+    - presto_sql: "SELECT STRPOS(name, '@')"
+      googlesql: "SELECT STRPOS(name, '@')"
+
+- name: chr
+  category: STRING_FUNCTIONS
+  description: "Convert Presto CHR(n) to BigQuery CHR(n) — compatible"
+  presto_pattern: "\\bCHR\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "CHR(\\1)"
+  examples:
+    - presto_sql: "SELECT CHR(65)"
+      googlesql: "SELECT CHR(65)"
+
+- name: replace_function
+  category: STRING_FUNCTIONS
+  description: "Convert Presto REPLACE(str, from, to) to BigQuery REPLACE(str, from, to) — compatible"
+  presto_pattern: "\\bREPLACE\\(\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "REPLACE(\\1, \\2, \\3)"
+  examples:
+    - presto_sql: "SELECT REPLACE(name, ' ', '_')"
+      googlesql: "SELECT REPLACE(name, ' ', '_')"
+
+- name: split_basic
+  category: STRING_FUNCTIONS
+  description: "Convert Presto SPLIT(str, delim) to BigQuery SPLIT(str, delim) — compatible"
+  presto_pattern: "\\bSPLIT\\(\\s*([^,]+)\\s*,\\s*([^),]+)\\s*\\)"
+  googlesql_replacement: "SPLIT(\\1, \\2)"
+  examples:
+    - presto_sql: "SELECT SPLIT(tags, ',')"
+      googlesql: "SELECT SPLIT(tags, ',')"
+
+- name: reverse_string
+  category: STRING_FUNCTIONS
+  description: "Convert Presto REVERSE(str) to BigQuery REVERSE(str) — compatible"
+  presto_pattern: "\\bREVERSE\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "REVERSE(\\1)"
+  examples:
+    - presto_sql: "SELECT REVERSE(name)"
+      googlesql: "SELECT REVERSE(name)"
+
+- name: lpad
+  category: STRING_FUNCTIONS
+  description: "Convert Presto LPAD(str, n, pad) to BigQuery LPAD(str, n, pad) — compatible"
+  presto_pattern: "\\bLPAD\\(\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "LPAD(\\1, \\2, \\3)"
+  examples:
+    - presto_sql: "SELECT LPAD(CAST(id AS VARCHAR), 10, '0')"
+      googlesql: "SELECT LPAD(CAST(id AS VARCHAR), 10, '0')"
+
+- name: rpad
+  category: STRING_FUNCTIONS
+  description: "Convert Presto RPAD(str, n, pad) to BigQuery RPAD(str, n, pad) — compatible"
+  presto_pattern: "\\bRPAD\\(\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "RPAD(\\1, \\2, \\3)"
+  examples:
+    - presto_sql: "SELECT RPAD(code, 5, 'X')"
+      googlesql: "SELECT RPAD(code, 5, 'X')"
+
+- name: position_function
+  category: STRING_FUNCTIONS
+  description: "Convert Presto POSITION(substr IN str) to BigQuery STRPOS(str, substr)"
+  presto_pattern: "\\bPOSITION\\(\\s*([^\\s]+)\\s+IN\\s+([^)]+)\\)"
+  googlesql_replacement: "STRPOS(\\2, \\1)"
+  examples:
+    - presto_sql: "SELECT POSITION('@' IN email)"
+      googlesql: "SELECT STRPOS(email, '@')"
+
+# =============================================================================
+# ARRAY_FUNCTIONS (14 patterns)
+# =============================================================================
+
+- name: cardinality
+  category: ARRAY_FUNCTIONS
+  description: "Convert Presto CARDINALITY(array) to BigQuery ARRAY_LENGTH(array)"
+  presto_pattern: "\\bCARDINALITY\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "ARRAY_LENGTH(\\1)"
+  examples:
+    - presto_sql: "SELECT CARDINALITY(tags)"
+      googlesql: "SELECT ARRAY_LENGTH(tags)"
+
+- name: array_distinct
+  category: ARRAY_FUNCTIONS
+  description: "Convert Presto ARRAY_DISTINCT(array) to BigQuery subquery with ARRAY_AGG(DISTINCT ...)"
+  presto_pattern: "\\bARRAY_DISTINCT\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "(SELECT ARRAY_AGG(DISTINCT x) FROM UNNEST(\\1) AS x)"
+  examples:
+    - presto_sql: "SELECT ARRAY_DISTINCT(categories)"
+      googlesql: "SELECT (SELECT ARRAY_AGG(DISTINCT x) FROM UNNEST(categories) AS x)"
+
+- name: array_join
+  category: ARRAY_FUNCTIONS
+  description: "Convert Presto ARRAY_JOIN(array, delim) to BigQuery ARRAY_TO_STRING(array, delim)"
+  presto_pattern: "\\bARRAY_JOIN\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "ARRAY_TO_STRING(\\1, \\2)"
+  examples:
+    - presto_sql: "SELECT ARRAY_JOIN(tags, ', ')"
+      googlesql: "SELECT ARRAY_TO_STRING(tags, ', ')"
+
+- name: array_sort
+  category: ARRAY_FUNCTIONS
+  description: "Convert Presto ARRAY_SORT(array) to BigQuery subquery with ARRAY_AGG(... ORDER BY ...)"
+  presto_pattern: "\\bARRAY_SORT\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "(SELECT ARRAY_AGG(x ORDER BY x) FROM UNNEST(\\1) AS x)"
+  examples:
+    - presto_sql: "SELECT ARRAY_SORT(scores)"
+      googlesql: "SELECT (SELECT ARRAY_AGG(x ORDER BY x) FROM UNNEST(scores) AS x)"
+
+- name: array_position
+  category: ARRAY_FUNCTIONS
+  description: "Convert Presto ARRAY_POSITION(array, elem) to BigQuery subquery finding offset"
+  presto_pattern: "\\bARRAY_POSITION\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "(SELECT OFFSET + 1 FROM UNNEST(\\1) AS x WITH OFFSET WHERE x = \\2 LIMIT 1)"
+  examples:
+    - presto_sql: "SELECT ARRAY_POSITION(tags, 'urgent')"
+      googlesql: "SELECT (SELECT OFFSET + 1 FROM UNNEST(tags) AS x WITH OFFSET WHERE x = 'urgent' LIMIT 1)"
+
+- name: array_remove
+  category: ARRAY_FUNCTIONS
+  description: "Convert Presto ARRAY_REMOVE(array, elem) to BigQuery subquery filtering element"
+  presto_pattern: "\\bARRAY_REMOVE\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "(SELECT ARRAY_AGG(x) FROM UNNEST(\\1) AS x WHERE x != \\2)"
+  examples:
+    - presto_sql: "SELECT ARRAY_REMOVE(tags, 'deprecated')"
+      googlesql: "SELECT (SELECT ARRAY_AGG(x) FROM UNNEST(tags) AS x WHERE x != 'deprecated')"
+
+- name: array_max
+  category: ARRAY_FUNCTIONS
+  description: "Convert Presto ARRAY_MAX(array) to BigQuery subquery with MAX"
+  presto_pattern: "\\bARRAY_MAX\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "(SELECT MAX(x) FROM UNNEST(\\1) AS x)"
+  examples:
+    - presto_sql: "SELECT ARRAY_MAX(scores)"
+      googlesql: "SELECT (SELECT MAX(x) FROM UNNEST(scores) AS x)"
+
+- name: array_min
+  category: ARRAY_FUNCTIONS
+  description: "Convert Presto ARRAY_MIN(array) to BigQuery subquery with MIN"
+  presto_pattern: "\\bARRAY_MIN\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "(SELECT MIN(x) FROM UNNEST(\\1) AS x)"
+  examples:
+    - presto_sql: "SELECT ARRAY_MIN(scores)"
+      googlesql: "SELECT (SELECT MIN(x) FROM UNNEST(scores) AS x)"
+
+- name: element_at
+  category: ARRAY_FUNCTIONS
+  description: "Convert Presto ELEMENT_AT(array, index) to BigQuery array[SAFE_OFFSET(index - 1)]"
+  presto_pattern: "\\bELEMENT_AT\\(\\s*([^,]+)\\s*,\\s*(\\d+)\\s*\\)"
+  googlesql_replacement: "\\1[SAFE_OFFSET(\\2 - 1)]"
+  examples:
+    - presto_sql: "SELECT ELEMENT_AT(tags, 1)"
+      googlesql: "SELECT tags[SAFE_OFFSET(1 - 1)]"
+
+- name: flatten
+  category: ARRAY_FUNCTIONS
+  description: "Convert Presto FLATTEN(nested_array) to BigQuery subquery unnesting nested arrays"
+  presto_pattern: "\\bFLATTEN\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "(SELECT ARRAY_AGG(x) FROM UNNEST(\\1) AS arr, UNNEST(arr) AS x)"
+  examples:
+    - presto_sql: "SELECT FLATTEN(nested_tags)"
+      googlesql: "SELECT (SELECT ARRAY_AGG(x) FROM UNNEST(nested_tags) AS arr, UNNEST(arr) AS x)"
+
+- name: sequence
+  category: ARRAY_FUNCTIONS
+  description: "Convert Presto SEQUENCE(start, stop) to BigQuery GENERATE_ARRAY(start, stop)"
+  presto_pattern: "\\bSEQUENCE\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "GENERATE_ARRAY(\\1, \\2)"
+  examples:
+    - presto_sql: "SELECT SEQUENCE(1, 10)"
+      googlesql: "SELECT GENERATE_ARRAY(1, 10)"
+
+- name: slice
+  category: ARRAY_FUNCTIONS
+  description: "Convert Presto SLICE(array, start, len) to BigQuery ARRAY subscript with OFFSET range"
+  presto_pattern: "\\bSLICE\\(\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "ARRAY(SELECT x FROM UNNEST(\\1) AS x WITH OFFSET WHERE OFFSET >= \\2 - 1 AND OFFSET < \\2 - 1 + \\3)"
+  examples:
+    - presto_sql: "SELECT SLICE(arr, 2, 3)"
+      googlesql: "SELECT ARRAY(SELECT x FROM UNNEST(arr) AS x WITH OFFSET WHERE OFFSET >= 2 - 1 AND OFFSET < 2 - 1 + 3)"
+
+- name: array_concat
+  category: ARRAY_FUNCTIONS
+  description: "Convert Presto CONCAT(array1, array2) for arrays to BigQuery ARRAY_CONCAT(array1, array2)"
+  presto_pattern: "\\bCONCAT\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)\\s*--\\s*array"
+  googlesql_replacement: "ARRAY_CONCAT(\\1, \\2)"
+  examples:
+    - presto_sql: "SELECT CONCAT(arr1, arr2) -- array"
+      googlesql: "SELECT ARRAY_CONCAT(arr1, arr2)"
+
+- name: array_union
+  category: ARRAY_FUNCTIONS
+  description: "Convert Presto ARRAY_UNION(a, b) to BigQuery subquery with ARRAY_AGG(DISTINCT ...) over ARRAY_CONCAT"
+  presto_pattern: "\\bARRAY_UNION\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "(SELECT ARRAY_AGG(DISTINCT x) FROM UNNEST(ARRAY_CONCAT(\\1, \\2)) AS x)"
+  examples:
+    - presto_sql: "SELECT ARRAY_UNION(arr1, arr2)"
+      googlesql: "SELECT (SELECT ARRAY_AGG(DISTINCT x) FROM UNNEST(ARRAY_CONCAT(arr1, arr2)) AS x)"
+
+# =============================================================================
+# AGGREGATE_FUNCTIONS (11 patterns)
+# =============================================================================
+
+- name: bool_and
+  category: AGGREGATE_FUNCTIONS
+  description: "Convert Presto BOOL_AND(col) to BigQuery LOGICAL_AND(col)"
+  presto_pattern: "\\bBOOL_AND\\("
+  googlesql_replacement: "LOGICAL_AND("
+  examples:
+    - presto_sql: "SELECT BOOL_AND(is_active) FROM users"
+      googlesql: "SELECT LOGICAL_AND(is_active) FROM users"
+
+- name: bool_or
+  category: AGGREGATE_FUNCTIONS
+  description: "Convert Presto BOOL_OR(col) to BigQuery LOGICAL_OR(col)"
+  presto_pattern: "\\bBOOL_OR\\("
+  googlesql_replacement: "LOGICAL_OR("
+  examples:
+    - presto_sql: "SELECT BOOL_OR(has_error) FROM logs"
+      googlesql: "SELECT LOGICAL_OR(has_error) FROM logs"
+
+- name: count_if
+  category: AGGREGATE_FUNCTIONS
+  description: "Convert Presto COUNT_IF(condition) to BigQuery COUNTIF(condition)"
+  presto_pattern: "\\bCOUNT_IF\\("
+  googlesql_replacement: "COUNTIF("
+  examples:
+    - presto_sql: "SELECT COUNT_IF(status = 'active')"
+      googlesql: "SELECT COUNTIF(status = 'active')"
+
+- name: max_by
+  category: AGGREGATE_FUNCTIONS
+  description: "Convert Presto MAX_BY(val, key) to BigQuery ANY_VALUE(val HAVING MAX key)"
+  presto_pattern: "\\bMAX_BY\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "ANY_VALUE(\\1 HAVING MAX \\2)"
+  examples:
+    - presto_sql: "SELECT MAX_BY(name, score) FROM users"
+      googlesql: "SELECT ANY_VALUE(name HAVING MAX score) FROM users"
+
+- name: min_by
+  category: AGGREGATE_FUNCTIONS
+  description: "Convert Presto MIN_BY(val, key) to BigQuery ANY_VALUE(val HAVING MIN key)"
+  presto_pattern: "\\bMIN_BY\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "ANY_VALUE(\\1 HAVING MIN \\2)"
+  examples:
+    - presto_sql: "SELECT MIN_BY(name, score) FROM users"
+      googlesql: "SELECT ANY_VALUE(name HAVING MIN score) FROM users"
+
+- name: map_agg
+  category: AGGREGATE_FUNCTIONS
+  description: "Convert Presto MAP_AGG(key, value) to BigQuery ARRAY_AGG(STRUCT(key, value))"
+  presto_pattern: "\\bMAP_AGG\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "ARRAY_AGG(STRUCT(\\1, \\2))"
+  examples:
+    - presto_sql: "SELECT MAP_AGG(id, name) FROM users"
+      googlesql: "SELECT ARRAY_AGG(STRUCT(id, name)) FROM users"
+
+- name: multimap_agg
+  category: AGGREGATE_FUNCTIONS
+  description: "Convert Presto MULTIMAP_AGG(key, value) to BigQuery ARRAY_AGG(STRUCT(key, value))"
+  presto_pattern: "\\bMULTIMAP_AGG\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "ARRAY_AGG(STRUCT(\\1, \\2))"
+  examples:
+    - presto_sql: "SELECT MULTIMAP_AGG(category, product) FROM catalog"
+      googlesql: "SELECT ARRAY_AGG(STRUCT(category, product)) FROM catalog"
+
+- name: checksum
+  category: AGGREGATE_FUNCTIONS
+  description: "Convert Presto CHECKSUM(col) to BigQuery FARM_FINGERPRINT(CAST(col AS STRING))"
+  presto_pattern: "\\bCHECKSUM\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "FARM_FINGERPRINT(CAST(\\1 AS STRING))"
+  examples:
+    - presto_sql: "SELECT CHECKSUM(user_id) FROM users"
+      googlesql: "SELECT FARM_FINGERPRINT(CAST(user_id AS STRING)) FROM users"
+
+- name: reduce_agg
+  category: AGGREGATE_FUNCTIONS
+  description: "Convert Presto REDUCE(array, init, fn, out) to BigQuery subquery pattern"
+  presto_pattern: "\\bREDUCE\\(\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*\\(([^,]+)\\s*,\\s*([^)]+)\\)\\s*->\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "(SELECT \\5 FROM UNNEST(\\1) AS \\4 WITH OFFSET ORDER BY OFFSET)"
+  examples:
+    - presto_sql: "SELECT REDUCE(arr, 0, (s, x) -> s + x, s -> s)"
+      googlesql: "SELECT (SELECT s + x FROM UNNEST(arr) AS x WITH OFFSET ORDER BY OFFSET)"
+
+- name: every_agg
+  category: AGGREGATE_FUNCTIONS
+  description: "Convert Presto EVERY(condition) to BigQuery LOGICAL_AND(condition)"
+  presto_pattern: "\\bEVERY\\("
+  googlesql_replacement: "LOGICAL_AND("
+  examples:
+    - presto_sql: "SELECT EVERY(score > 50) FROM results"
+      googlesql: "SELECT LOGICAL_AND(score > 50) FROM results"
+
+- name: count_star_filter
+  category: AGGREGATE_FUNCTIONS
+  description: "Convert Presto COUNT(*) FILTER(WHERE cond) to BigQuery COUNTIF(cond)"
+  presto_pattern: "\\bCOUNT\\(\\*\\)\\s+FILTER\\s*\\(\\s*WHERE\\s+([^)]+)\\)"
+  googlesql_replacement: "COUNTIF(\\1)"
+  examples:
+    - presto_sql: "SELECT COUNT(*) FILTER(WHERE status = 'active')"
+      googlesql: "SELECT COUNTIF(status = 'active')"
+
+# =============================================================================
+# TYPE_CASTING (10 patterns)
+# =============================================================================
+
+- name: cast_varchar
+  category: TYPE_CASTING
+  description: "Convert Presto CAST(x AS VARCHAR) to BigQuery CAST(x AS STRING)"
+  presto_pattern: "\\bCAST\\(\\s*([^)]+?)\\s+AS\\s+VARCHAR\\s*\\)"
+  googlesql_replacement: "CAST(\\1 AS STRING)"
+  examples:
+    - presto_sql: "SELECT CAST(id AS VARCHAR)"
+      googlesql: "SELECT CAST(id AS STRING)"
+
+- name: cast_varchar_n
+  category: TYPE_CASTING
+  description: "Convert Presto CAST(x AS VARCHAR(n)) to BigQuery CAST(x AS STRING)"
+  presto_pattern: "\\bCAST\\(\\s*([^)]+?)\\s+AS\\s+VARCHAR\\(\\d+\\)\\s*\\)"
+  googlesql_replacement: "CAST(\\1 AS STRING)"
+  examples:
+    - presto_sql: "SELECT CAST(name AS VARCHAR(255))"
+      googlesql: "SELECT CAST(name AS STRING)"
+
+- name: cast_integer
+  category: TYPE_CASTING
+  description: "Convert Presto CAST(x AS INTEGER) to BigQuery CAST(x AS INT64)"
+  presto_pattern: "\\bCAST\\(\\s*([^)]+?)\\s+AS\\s+INTEGER\\s*\\)"
+  googlesql_replacement: "CAST(\\1 AS INT64)"
+  examples:
+    - presto_sql: "SELECT CAST(val AS INTEGER)"
+      googlesql: "SELECT CAST(val AS INT64)"
+
+- name: cast_bigint
+  category: TYPE_CASTING
+  description: "Convert Presto CAST(x AS BIGINT) to BigQuery CAST(x AS INT64)"
+  presto_pattern: "\\bCAST\\(\\s*([^)]+?)\\s+AS\\s+BIGINT\\s*\\)"
+  googlesql_replacement: "CAST(\\1 AS INT64)"
+  examples:
+    - presto_sql: "SELECT CAST(val AS BIGINT)"
+      googlesql: "SELECT CAST(val AS INT64)"
+
+- name: cast_double
+  category: TYPE_CASTING
+  description: "Convert Presto CAST(x AS DOUBLE) to BigQuery CAST(x AS FLOAT64)"
+  presto_pattern: "\\bCAST\\(\\s*([^)]+?)\\s+AS\\s+DOUBLE\\s*\\)"
+  googlesql_replacement: "CAST(\\1 AS FLOAT64)"
+  examples:
+    - presto_sql: "SELECT CAST(val AS DOUBLE)"
+      googlesql: "SELECT CAST(val AS FLOAT64)"
+
+- name: cast_real
+  category: TYPE_CASTING
+  description: "Convert Presto CAST(x AS REAL) to BigQuery CAST(x AS FLOAT64)"
+  presto_pattern: "\\bCAST\\(\\s*([^)]+?)\\s+AS\\s+REAL\\s*\\)"
+  googlesql_replacement: "CAST(\\1 AS FLOAT64)"
+  examples:
+    - presto_sql: "SELECT CAST(val AS REAL)"
+      googlesql: "SELECT CAST(val AS FLOAT64)"
+
+- name: cast_boolean
+  category: TYPE_CASTING
+  description: "Convert Presto CAST(x AS BOOLEAN) to BigQuery CAST(x AS BOOL)"
+  presto_pattern: "\\bCAST\\(\\s*([^)]+?)\\s+AS\\s+BOOLEAN\\s*\\)"
+  googlesql_replacement: "CAST(\\1 AS BOOL)"
+  examples:
+    - presto_sql: "SELECT CAST(flag AS BOOLEAN)"
+      googlesql: "SELECT CAST(flag AS BOOL)"
+
+- name: cast_tinyint
+  category: TYPE_CASTING
+  description: "Convert Presto CAST(x AS TINYINT) to BigQuery CAST(x AS INT64)"
+  presto_pattern: "\\bCAST\\(\\s*([^)]+?)\\s+AS\\s+TINYINT\\s*\\)"
+  googlesql_replacement: "CAST(\\1 AS INT64)"
+  examples:
+    - presto_sql: "SELECT CAST(val AS TINYINT)"
+      googlesql: "SELECT CAST(val AS INT64)"
+
+- name: cast_smallint
+  category: TYPE_CASTING
+  description: "Convert Presto CAST(x AS SMALLINT) to BigQuery CAST(x AS INT64)"
+  presto_pattern: "\\bCAST\\(\\s*([^)]+?)\\s+AS\\s+SMALLINT\\s*\\)"
+  googlesql_replacement: "CAST(\\1 AS INT64)"
+  examples:
+    - presto_sql: "SELECT CAST(val AS SMALLINT)"
+      googlesql: "SELECT CAST(val AS INT64)"
+
+- name: cast_varbinary
+  category: TYPE_CASTING
+  description: "Convert Presto CAST(x AS VARBINARY) to BigQuery CAST(x AS BYTES)"
+  presto_pattern: "\\bCAST\\(\\s*([^)]+?)\\s+AS\\s+VARBINARY\\s*\\)"
+  googlesql_replacement: "CAST(\\1 AS BYTES)"
+  examples:
+    - presto_sql: "SELECT CAST(data AS VARBINARY)"
+      googlesql: "SELECT CAST(data AS BYTES)"
+
+# =============================================================================
+# CONDITIONAL_FUNCTIONS (4 patterns)
+# =============================================================================
+
+- name: try_function
+  category: CONDITIONAL_FUNCTIONS
+  description: "Convert Presto TRY(expr) to BigQuery SAFE equivalent or NULL on error"
+  presto_pattern: "\\bTRY\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "SAFE_CAST(\\1 AS STRING)"
+  examples:
+    - presto_sql: "SELECT TRY(CAST(val AS INTEGER))"
+      googlesql: "SELECT SAFE_CAST(CAST(val AS INTEGER) AS STRING)"
+
+- name: nvl_function
+  category: CONDITIONAL_FUNCTIONS
+  description: "Convert Presto NVL(a, b) to BigQuery IFNULL(a, b)"
+  presto_pattern: "\\bNVL\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "IFNULL(\\1, \\2)"
+  examples:
+    - presto_sql: "SELECT NVL(name, 'unknown')"
+      googlesql: "SELECT IFNULL(name, 'unknown')"
+
+- name: nvl2_function
+  category: CONDITIONAL_FUNCTIONS
+  description: "Convert Presto NVL2(expr, val_if_not_null, val_if_null) to BigQuery IF(expr IS NOT NULL, ..., ...)"
+  presto_pattern: "\\bNVL2\\(\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "IF(\\1 IS NOT NULL, \\2, \\3)"
+  examples:
+    - presto_sql: "SELECT NVL2(email, 'has_email', 'no_email')"
+      googlesql: "SELECT IF(email IS NOT NULL, 'has_email', 'no_email')"
+
+- name: if_function
+  category: CONDITIONAL_FUNCTIONS
+  description: "Convert Presto IF(cond, true_val, false_val) to BigQuery IF — compatible"
+  presto_pattern: "\\bIF\\(\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "IF(\\1, \\2, \\3)"
+  examples:
+    - presto_sql: "SELECT IF(score > 90, 'A', 'B')"
+      googlesql: "SELECT IF(score > 90, 'A', 'B')"
+
+# =============================================================================
+# JSON_FUNCTIONS (6 patterns)
+# =============================================================================
+
+- name: json_extract
+  category: JSON_FUNCTIONS
+  description: "Convert Presto JSON_EXTRACT(json, path) to BigQuery JSON_EXTRACT — compatible"
+  presto_pattern: "\\bJSON_EXTRACT\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "JSON_EXTRACT(\\1, \\2)"
+  examples:
+    - presto_sql: "SELECT JSON_EXTRACT(payload, '$.name')"
+      googlesql: "SELECT JSON_EXTRACT(payload, '$.name')"
+
+- name: json_extract_scalar
+  category: JSON_FUNCTIONS
+  description: "Convert Presto JSON_EXTRACT_SCALAR(json, path) to BigQuery JSON_EXTRACT_SCALAR — compatible"
+  presto_pattern: "\\bJSON_EXTRACT_SCALAR\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "JSON_EXTRACT_SCALAR(\\1, \\2)"
+  examples:
+    - presto_sql: "SELECT JSON_EXTRACT_SCALAR(payload, '$.user.name')"
+      googlesql: "SELECT JSON_EXTRACT_SCALAR(payload, '$.user.name')"
+
+- name: json_array_length
+  category: JSON_FUNCTIONS
+  description: "Convert Presto JSON_ARRAY_LENGTH(json) to BigQuery ARRAY_LENGTH(JSON_EXTRACT_ARRAY(json, '$'))"
+  presto_pattern: "\\bJSON_ARRAY_LENGTH\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "ARRAY_LENGTH(JSON_EXTRACT_ARRAY(\\1, '$'))"
+  examples:
+    - presto_sql: "SELECT JSON_ARRAY_LENGTH(items_json)"
+      googlesql: "SELECT ARRAY_LENGTH(JSON_EXTRACT_ARRAY(items_json, '$'))"
+
+- name: json_parse
+  category: JSON_FUNCTIONS
+  description: "Convert Presto JSON_PARSE(str) to BigQuery PARSE_JSON(str)"
+  presto_pattern: "\\bJSON_PARSE\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "PARSE_JSON(\\1)"
+  examples:
+    - presto_sql: "SELECT JSON_PARSE(raw_json)"
+      googlesql: "SELECT PARSE_JSON(raw_json)"
+
+- name: json_format
+  category: JSON_FUNCTIONS
+  description: "Convert Presto JSON_FORMAT(json) to BigQuery TO_JSON_STRING(json)"
+  presto_pattern: "\\bJSON_FORMAT\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "TO_JSON_STRING(\\1)"
+  examples:
+    - presto_sql: "SELECT JSON_FORMAT(data)"
+      googlesql: "SELECT TO_JSON_STRING(data)"
+
+- name: json_array_get
+  category: JSON_FUNCTIONS
+  description: "Convert Presto JSON_ARRAY_GET(json, index) to BigQuery JSON_EXTRACT_ARRAY(...)[SAFE_OFFSET(index)]"
+  presto_pattern: "\\bJSON_ARRAY_GET\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "JSON_EXTRACT_ARRAY(\\1, '$')[SAFE_OFFSET(\\2)]"
+  examples:
+    - presto_sql: "SELECT JSON_ARRAY_GET(items_json, 0)"
+      googlesql: "SELECT JSON_EXTRACT_ARRAY(items_json, '$')[SAFE_OFFSET(0)]"
+
+# =============================================================================
+# WINDOW_FUNCTIONS (4 patterns — only non-compatible ones)
+# =============================================================================
+
+- name: nth_value
+  category: WINDOW_FUNCTIONS
+  description: "Convert Presto NTH_VALUE(col, n) to BigQuery NTH_VALUE — compatible"
+  presto_pattern: "\\bNTH_VALUE\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "NTH_VALUE(\\1, \\2)"
+  examples:
+    - presto_sql: "SELECT NTH_VALUE(score, 2) OVER (ORDER BY score DESC)"
+      googlesql: "SELECT NTH_VALUE(score, 2) OVER (ORDER BY score DESC)"
+
+- name: row_number
+  category: WINDOW_FUNCTIONS
+  description: "Convert Presto ROW_NUMBER() to BigQuery ROW_NUMBER() — compatible"
+  presto_pattern: "\\bROW_NUMBER\\(\\s*\\)"
+  googlesql_replacement: "ROW_NUMBER()"
+  examples:
+    - presto_sql: "SELECT ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary DESC)"
+      googlesql: "SELECT ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary DESC)"
+
+- name: cume_dist
+  category: WINDOW_FUNCTIONS
+  description: "Convert Presto CUME_DIST() to BigQuery CUME_DIST() — compatible"
+  presto_pattern: "\\bCUME_DIST\\(\\s*\\)"
+  googlesql_replacement: "CUME_DIST()"
+  examples:
+    - presto_sql: "SELECT CUME_DIST() OVER (ORDER BY score)"
+      googlesql: "SELECT CUME_DIST() OVER (ORDER BY score)"
+
+- name: ntile
+  category: WINDOW_FUNCTIONS
+  description: "Convert Presto NTILE(n) to BigQuery NTILE(n) — compatible"
+  presto_pattern: "\\bNTILE\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "NTILE(\\1)"
+  examples:
+    - presto_sql: "SELECT NTILE(4) OVER (ORDER BY salary)"
+      googlesql: "SELECT NTILE(4) OVER (ORDER BY salary)"
+
+# =============================================================================
+# TABLE_FUNCTIONS (4 patterns)
+# =============================================================================
+
+- name: unnest_with_ordinality
+  category: TABLE_FUNCTIONS
+  description: "Convert Presto UNNEST(array) WITH ORDINALITY to BigQuery UNNEST(array) WITH OFFSET"
+  presto_pattern: "\\bUNNEST\\(([^)]+)\\)\\s+WITH\\s+ORDINALITY"
+  googlesql_replacement: "UNNEST(\\1) WITH OFFSET"
+  examples:
+    - presto_sql: "SELECT * FROM UNNEST(arr) WITH ORDINALITY AS t(val, pos)"
+      googlesql: "SELECT * FROM UNNEST(arr) WITH OFFSET AS t(val, pos)"
+
+- name: cross_join_unnest_aliased
+  category: TABLE_FUNCTIONS
+  description: "Convert Presto CROSS JOIN UNNEST(array) AS t(col) to BigQuery CROSS JOIN UNNEST(array) AS col"
+  presto_pattern: "CROSS\\s+JOIN\\s+UNNEST\\(([^)]+)\\)\\s+AS\\s+\\w+\\((\\w+)\\)"
+  googlesql_replacement: "CROSS JOIN UNNEST(\\1) AS \\2"
+  examples:
+    - presto_sql: "SELECT * FROM orders CROSS JOIN UNNEST(items) AS t(item)"
+      googlesql: "SELECT * FROM orders CROSS JOIN UNNEST(items) AS item"
+
+- name: values_clause
+  category: TABLE_FUNCTIONS
+  description: "Convert Presto VALUES (1), (2), (3) to BigQuery SELECT * FROM UNNEST([...])"
+  presto_pattern: "VALUES\\s+\\(([^)]+)\\)(?:\\s*,\\s*\\(([^)]+)\\))*"
+  googlesql_replacement: "SELECT * FROM UNNEST([\\1, \\2])"
+  examples:
+    - presto_sql: "SELECT * FROM (VALUES (1), (2), (3))"
+      googlesql: "SELECT * FROM UNNEST([1, 2, 3])"
+
+- name: lateral_subquery
+  category: TABLE_FUNCTIONS
+  description: "Convert Presto LATERAL to BigQuery comma-join subquery"
+  presto_pattern: ",\\s*LATERAL\\s*"
+  googlesql_replacement: ", "
+  examples:
+    - presto_sql: "SELECT * FROM orders, LATERAL (SELECT * FROM UNNEST(items))"
+      googlesql: "SELECT * FROM orders, (SELECT * FROM UNNEST(items))"
+
+# =============================================================================
+# BITWISE_FUNCTIONS (5 patterns)
+# =============================================================================
+
+- name: bitwise_and
+  category: BITWISE_FUNCTIONS
+  description: "Convert Presto BITWISE_AND(a, b) to BigQuery (a & b)"
+  presto_pattern: "\\bBITWISE_AND\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "(\\1 & \\2)"
+  examples:
+    - presto_sql: "SELECT BITWISE_AND(flags, 0xFF)"
+      googlesql: "SELECT (flags & 0xFF)"
+
+- name: bitwise_or
+  category: BITWISE_FUNCTIONS
+  description: "Convert Presto BITWISE_OR(a, b) to BigQuery (a | b)"
+  presto_pattern: "\\bBITWISE_OR\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "(\\1 | \\2)"
+  examples:
+    - presto_sql: "SELECT BITWISE_OR(flags, 0x01)"
+      googlesql: "SELECT (flags | 0x01)"
+
+- name: bitwise_xor
+  category: BITWISE_FUNCTIONS
+  description: "Convert Presto BITWISE_XOR(a, b) to BigQuery (a ^ b)"
+  presto_pattern: "\\bBITWISE_XOR\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "(\\1 ^ \\2)"
+  examples:
+    - presto_sql: "SELECT BITWISE_XOR(a, b)"
+      googlesql: "SELECT (a ^ b)"
+
+- name: bitwise_not
+  category: BITWISE_FUNCTIONS
+  description: "Convert Presto BITWISE_NOT(a) to BigQuery ~a"
+  presto_pattern: "\\bBITWISE_NOT\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "~\\1"
+  examples:
+    - presto_sql: "SELECT BITWISE_NOT(flags)"
+      googlesql: "SELECT ~flags"
+
+- name: bit_count
+  category: BITWISE_FUNCTIONS
+  description: "Convert Presto BIT_COUNT(x, bits) to BigQuery BIT_COUNT(x)"
+  presto_pattern: "\\bBIT_COUNT\\(\\s*([^,]+)\\s*,\\s*\\d+\\s*\\)"
+  googlesql_replacement: "BIT_COUNT(\\1)"
+  examples:
+    - presto_sql: "SELECT BIT_COUNT(flags, 64)"
+      googlesql: "SELECT BIT_COUNT(flags)"
+
+# =============================================================================
+# MATH_FUNCTIONS (10 patterns)
+# =============================================================================
+
+- name: infinity
+  category: MATH_FUNCTIONS
+  description: "Convert Presto INFINITY() to BigQuery CAST('inf' AS FLOAT64)"
+  presto_pattern: "\\bINFINITY\\(\\s*\\)"
+  googlesql_replacement: "CAST('inf' AS FLOAT64)"
+  examples:
+    - presto_sql: "SELECT INFINITY()"
+      googlesql: "SELECT CAST('inf' AS FLOAT64)"
+
+- name: nan
+  category: MATH_FUNCTIONS
+  description: "Convert Presto NAN() to BigQuery CAST('nan' AS FLOAT64)"
+  presto_pattern: "\\bNAN\\(\\s*\\)"
+  googlesql_replacement: "CAST('nan' AS FLOAT64)"
+  examples:
+    - presto_sql: "SELECT NAN()"
+      googlesql: "SELECT CAST('nan' AS FLOAT64)"
+
+- name: is_finite
+  category: MATH_FUNCTIONS
+  description: "Convert Presto IS_FINITE(x) to BigQuery NOT IS_INF(x) AND NOT IS_NAN(x)"
+  presto_pattern: "\\bIS_FINITE\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "(NOT IS_INF(\\1) AND NOT IS_NAN(\\1))"
+  examples:
+    - presto_sql: "SELECT IS_FINITE(val)"
+      googlesql: "SELECT (NOT IS_INF(val) AND NOT IS_NAN(val))"
+
+- name: is_nan
+  category: MATH_FUNCTIONS
+  description: "Convert Presto IS_NAN(x) to BigQuery IS_NAN(x) — compatible"
+  presto_pattern: "\\bIS_NAN\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "IS_NAN(\\1)"
+  examples:
+    - presto_sql: "SELECT IS_NAN(val)"
+      googlesql: "SELECT IS_NAN(val)"
+
+- name: truncate
+  category: MATH_FUNCTIONS
+  description: "Convert Presto TRUNCATE(x) to BigQuery TRUNC(x)"
+  presto_pattern: "\\bTRUNCATE\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "TRUNC(\\1)"
+  examples:
+    - presto_sql: "SELECT TRUNCATE(3.7)"
+      googlesql: "SELECT TRUNC(3.7)"
+
+- name: random
+  category: MATH_FUNCTIONS
+  description: "Convert Presto RANDOM() to BigQuery RAND()"
+  presto_pattern: "\\bRANDOM\\(\\s*\\)"
+  googlesql_replacement: "RAND()"
+  examples:
+    - presto_sql: "SELECT RANDOM()"
+      googlesql: "SELECT RAND()"
+
+- name: to_base
+  category: MATH_FUNCTIONS
+  description: "Convert Presto TO_BASE(n, 16) to BigQuery FORMAT('%x', n) for hexadecimal"
+  presto_pattern: "\\bTO_BASE\\(\\s*([^,]+)\\s*,\\s*16\\s*\\)"
+  googlesql_replacement: "FORMAT('%x', \\1)"
+  examples:
+    - presto_sql: "SELECT TO_BASE(255, 16)"
+      googlesql: "SELECT FORMAT('%x', 255)"
+
+- name: mod_function
+  category: MATH_FUNCTIONS
+  description: "Convert Presto MOD(a, b) to BigQuery MOD(a, b) — compatible"
+  presto_pattern: "\\bMOD\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "MOD(\\1, \\2)"
+  examples:
+    - presto_sql: "SELECT MOD(num, 3)"
+      googlesql: "SELECT MOD(num, 3)"
+
+- name: cbrt
+  category: MATH_FUNCTIONS
+  description: "Convert Presto CBRT(x) to BigQuery POWER(x, 1.0/3.0)"
+  presto_pattern: "\\bCBRT\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "POWER(\\1, 1.0/3.0)"
+  examples:
+    - presto_sql: "SELECT CBRT(27)"
+      googlesql: "SELECT POWER(27, 1.0/3.0)"
+
+- name: log2
+  category: MATH_FUNCTIONS
+  description: "Convert Presto LOG2(x) to BigQuery LOG(x, 2)"
+  presto_pattern: "\\bLOG2\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "LOG(\\1, 2)"
+  examples:
+    - presto_sql: "SELECT LOG2(1024)"
+      googlesql: "SELECT LOG(1024, 2)"
+
+# =============================================================================
+# MISC_FUNCTIONS (6 patterns)
+# =============================================================================
+
+- name: uuid
+  category: MISC_FUNCTIONS
+  description: "Convert Presto UUID() to BigQuery GENERATE_UUID()"
+  presto_pattern: "\\bUUID\\(\\s*\\)"
+  googlesql_replacement: "GENERATE_UUID()"
+  examples:
+    - presto_sql: "SELECT UUID()"
+      googlesql: "SELECT GENERATE_UUID()"
+
+- name: from_hex
+  category: MISC_FUNCTIONS
+  description: "Convert Presto FROM_HEX(str) to BigQuery FROM_HEX(str) — compatible"
+  presto_pattern: "\\bFROM_HEX\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "FROM_HEX(\\1)"
+  examples:
+    - presto_sql: "SELECT FROM_HEX('48656C6C6F')"
+      googlesql: "SELECT FROM_HEX('48656C6C6F')"
+
+- name: to_hex
+  category: MISC_FUNCTIONS
+  description: "Convert Presto TO_HEX(bytes) to BigQuery TO_HEX(bytes) — compatible"
+  presto_pattern: "\\bTO_HEX\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "TO_HEX(\\1)"
+  examples:
+    - presto_sql: "SELECT TO_HEX(data)"
+      googlesql: "SELECT TO_HEX(data)"
+
+- name: url_extract_host
+  category: MISC_FUNCTIONS
+  description: "Convert Presto URL_EXTRACT_HOST(url) to BigQuery NET.HOST(url)"
+  presto_pattern: "\\bURL_EXTRACT_HOST\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "NET.HOST(\\1)"
+  examples:
+    - presto_sql: "SELECT URL_EXTRACT_HOST(page_url)"
+      googlesql: "SELECT NET.HOST(page_url)"
+
+- name: url_extract_path
+  category: MISC_FUNCTIONS
+  description: "Convert Presto URL_EXTRACT_PATH(url) to BigQuery REGEXP_EXTRACT(url, r'://[^/]+(/.*)') path extraction"
+  presto_pattern: "\\bURL_EXTRACT_PATH\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "REGEXP_EXTRACT(\\1, r'://[^/]+(/[^?#]*)')"
+  examples:
+    - presto_sql: "SELECT URL_EXTRACT_PATH(page_url)"
+      googlesql: "SELECT REGEXP_EXTRACT(page_url, r'://[^/]+(/[^?#]*)')"
+
+- name: url_extract_parameter
+  category: MISC_FUNCTIONS
+  description: "Convert Presto URL_EXTRACT_PARAMETER(url, name) to BigQuery REGEXP_EXTRACT for query param"
+  presto_pattern: "\\bURL_EXTRACT_PARAMETER\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "REGEXP_EXTRACT(\\1, CONCAT(\\2, '=([^&]*)'))"
+  examples:
+    - presto_sql: "SELECT URL_EXTRACT_PARAMETER(url, 'id')"
+      googlesql: "SELECT REGEXP_EXTRACT(url, CONCAT('id', '=([^&]*)'))"
+
+# =============================================================================
+# MAP_FUNCTIONS (4 additional patterns)
+# =============================================================================
+
+- name: map_filter
+  category: MAP_FUNCTIONS
+  description: "Convert Presto MAP_FILTER(map, (k,v) -> cond) to BigQuery subquery with UNNEST and filter"
+  presto_pattern: "\\bMAP_FILTER\\(\\s*([^,]+)\\s*,\\s*\\(([^,]+)\\s*,\\s*([^)]+)\\)\\s*->\\s*([^)]+)\\)"
+  googlesql_replacement: "ARRAY(SELECT AS STRUCT \\2, \\3 FROM UNNEST(\\1) WHERE \\4)"
+  examples:
+    - presto_sql: "SELECT MAP_FILTER(m, (k, v) -> v > 0)"
+      googlesql: "SELECT ARRAY(SELECT AS STRUCT k, v FROM UNNEST(m) WHERE v > 0)"
+
+- name: map_entries
+  category: MAP_FUNCTIONS
+  description: "Convert Presto MAP_ENTRIES(map) to BigQuery direct UNNEST of map struct array"
+  presto_pattern: "\\bMAP_ENTRIES\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "\\1"
+  examples:
+    - presto_sql: "SELECT MAP_ENTRIES(attributes)"
+      googlesql: "SELECT attributes"
+
+- name: map_concat
+  category: MAP_FUNCTIONS
+  description: "Convert Presto MAP_CONCAT(map1, map2) to BigQuery ARRAY_CONCAT(map1, map2)"
+  presto_pattern: "\\bMAP_CONCAT\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\)"
+  googlesql_replacement: "ARRAY_CONCAT(\\1, \\2)"
+  examples:
+    - presto_sql: "SELECT MAP_CONCAT(map1, map2)"
+      googlesql: "SELECT ARRAY_CONCAT(map1, map2)"
+
+- name: map_from_entries
+  category: MAP_FUNCTIONS
+  description: "Convert Presto MAP_FROM_ENTRIES(array) to BigQuery direct passthrough (struct array)"
+  presto_pattern: "\\bMAP_FROM_ENTRIES\\(\\s*([^)]+)\\)"
+  googlesql_replacement: "\\1"
+  examples:
+    - presto_sql: "SELECT MAP_FROM_ENTRIES(ARRAY[ROW('a', 1), ROW('b', 2)])"
+      googlesql: "SELECT ARRAY[ROW('a', 1), ROW('b', 2)]"
+
+# =============================================================================
+# PRESTO-SPECIFIC SYNTAX (4 patterns)
+# =============================================================================
+
+- name: double_pipe_concat
+  category: PRESTO_SYNTAX
+  description: "Convert Presto || string concatenation to BigQuery CONCAT — compatible"
+  presto_pattern: "([^|])\\|\\|([^|])"
+  googlesql_replacement: "\\1||\\2"
+  examples:
+    - presto_sql: "SELECT first_name || ' ' || last_name"
+      googlesql: "SELECT first_name || ' ' || last_name"
+
+- name: subscript_bracket
+  category: PRESTO_SYNTAX
+  description: "Convert Presto array subscript arr[1] (1-based) to BigQuery arr[OFFSET(0)] (0-based)"
+  presto_pattern: "([a-zA-Z_]\\w*)\\[(\\d+)\\]"
+  googlesql_replacement: "\\1[OFFSET(\\2 - 1)]"
+  examples:
+    - presto_sql: "SELECT tags[1]"
+      googlesql: "SELECT tags[OFFSET(1 - 1)]"
+
+- name: try_function_cast
+  category: PRESTO_SYNTAX
+  description: "Convert Presto TRY(CAST(x AS type)) to BigQuery SAFE_CAST(x AS type)"
+  presto_pattern: "\\bTRY\\(\\s*CAST\\(\\s*([^)]+?)\\s+AS\\s+(\\w+)\\s*\\)\\s*\\)"
+  googlesql_replacement: "SAFE_CAST(\\1 AS \\2)"
+  examples:
+    - presto_sql: "SELECT TRY(CAST(val AS INTEGER))"
+      googlesql: "SELECT SAFE_CAST(val AS INTEGER)"
+
+- name: current_timestamp_no_parens
+  category: PRESTO_SYNTAX
+  description: "Convert Presto CURRENT_TIMESTAMP (without parens) to BigQuery CURRENT_TIMESTAMP()"
+  presto_pattern: "\\bCURRENT_TIMESTAMP\\b(?!\\s*\\()"
+  googlesql_replacement: "CURRENT_TIMESTAMP()"
+  examples:
+    - presto_sql: "SELECT CURRENT_TIMESTAMP"
+      googlesql: "SELECT CURRENT_TIMESTAMP()"

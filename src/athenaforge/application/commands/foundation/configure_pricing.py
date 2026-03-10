@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 
 from athenaforge.application.dtos.foundation_dtos import PricingResult
-from athenaforge.domain.ports.event_bus import EventBusPort
 from athenaforge.domain.ports.terraform_port import TerraformGeneratorPort
 from athenaforge.domain.services.cost_calculator import SlotPricingCalculator
 
@@ -15,11 +14,9 @@ class ConfigurePricingUseCase:
         self,
         pricing_calculator: SlotPricingCalculator,
         terraform_generator: TerraformGeneratorPort,
-        event_bus: EventBusPort,
     ) -> None:
         self._pricing_calculator = pricing_calculator
         self._terraform_generator = terraform_generator
-        self._event_bus = event_bus
 
     async def execute(
         self, slots: int, commitment_years: int, output_dir: str

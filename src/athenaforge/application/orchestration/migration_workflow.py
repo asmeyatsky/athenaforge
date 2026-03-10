@@ -56,15 +56,30 @@ class MigrationWorkflow:
         self._rewrite_dags_uc = rewrite_dags_uc
         self._plan_waves_uc = plan_waves_uc
 
-    def build(self) -> DAGOrchestrator:
+    def build(
+        self,
+        *,
+        manifest_path: str,
+        output_dir: str,
+        inventory_id: str,
+        source_dir: str,
+        translated_dir: str,
+        bucket: str,
+        prefixes: list[str] | None = None,
+        lobs: list[str] | None = None,
+        max_parallel: int = 3,
+    ) -> DAGOrchestrator:
         """Create and return a fully-configured DAG orchestrator."""
+        _prefixes = prefixes or []
+        _lobs = lobs or []
+
         orchestrator = DAGOrchestrator()
 
         # Level 1
         orchestrator.add_step(
             WorkflowStep(
                 name="scaffold",
-                execute=self._scaffold_uc.execute,
+                execute=lambda mp=manifest_path, od=output_dir: self._scaffold_uc.execute(mp, od),
                 depends_on=[],
                 is_critical=True,
             )
@@ -74,7 +89,7 @@ class MigrationWorkflow:
         orchestrator.add_step(
             WorkflowStep(
                 name="classify_tiers",
-                execute=self._classify_uc.execute,
+                execute=lambda iid=inventory_id: self._classify_uc.execute(iid),
                 depends_on=["scaffold"],
                 is_critical=True,
             )
@@ -84,7 +99,7 @@ class MigrationWorkflow:
         orchestrator.add_step(
             WorkflowStep(
                 name="translate_sql",
-                execute=self._translate_uc.execute,
+                execute=lambda sd=source_dir, od=output_dir: self._translate_uc.execute(sd, od),
                 depends_on=["classify_tiers"],
                 is_critical=True,
             )
@@ -92,7 +107,7 @@ class MigrationWorkflow:
         orchestrator.add_step(
             WorkflowStep(
                 name="scan_dependencies",
-                execute=self._scan_deps_uc.execute,
+                execute=lambda b=bucket, p=_prefixes: self._scan_deps_uc.execute(b, p),
                 depends_on=["classify_tiers"],
                 is_critical=True,
             )
@@ -102,7 +117,9 @@ class MigrationWorkflow:
         orchestrator.add_step(
             WorkflowStep(
                 name="validate_queries",
-                execute=self._validate_uc.execute,
+                execute=lambda td=translated_dir: self._validate_uc.execute(
+                    query_paths=[], query_contents={},
+                ),
                 depends_on=["translate_sql"],
                 is_critical=True,
             )
@@ -110,7 +127,7 @@ class MigrationWorkflow:
         orchestrator.add_step(
             WorkflowStep(
                 name="rewrite_dags",
-                execute=self._rewrite_dags_uc.execute,
+                execute=lambda: self._rewrite_dags_uc.execute(dag_contents={}),
                 depends_on=["scan_dependencies"],
                 is_critical=True,
             )
@@ -120,7 +137,7 @@ class MigrationWorkflow:
         orchestrator.add_step(
             WorkflowStep(
                 name="plan_waves",
-                execute=self._plan_waves_uc.execute,
+                execute=lambda iid=inventory_id, lb=_lobs, mp=max_parallel: self._plan_waves_uc.execute(iid, lb, mp),
                 depends_on=["validate_queries", "rewrite_dags"],
                 is_critical=True,
             )

@@ -50,14 +50,23 @@ class TestMigrationProject:
         assert scaffolding.status == "scaffolding"
         assert project.status == "initialized"
 
-    def test_collect_events_returns_and_clears(self) -> None:
+    def test_collect_events_returns_accumulated(self) -> None:
         project = self._make_project()
         updated = project.add_lob("marketing")
         events = updated.collect_events()
         assert len(events) == 1
         assert events[0].event_type == "ScaffoldGenerated"
-        # calling again yields empty list
-        assert updated.collect_events() == []
+        # events are immutable — same call returns same events
+        assert updated.collect_events() == events
+
+    def test_clear_events_returns_clean_instance(self) -> None:
+        project = self._make_project()
+        updated = project.add_lob("marketing")
+        assert len(updated.collect_events()) == 1
+        cleared = updated.clear_events()
+        assert len(cleared.collect_events()) == 0
+        # original still has events
+        assert len(updated.collect_events()) == 1
 
 
 # ---------------------------------------------------------------------------
@@ -186,8 +195,6 @@ class TestTranslationBatch:
         events = batch.collect_events()
         assert len(events) == 1
         assert events[0].event_type == "TranslationBatchCompleted"
-        # Second call returns empty
-        assert batch.collect_events() == []
 
 
 # ---------------------------------------------------------------------------

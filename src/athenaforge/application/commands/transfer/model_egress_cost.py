@@ -23,6 +23,9 @@ class ModelEgressCostUseCase:
     async def execute(
         self, total_size_bytes: int, credit_percentage: float = 0.0
     ) -> EgressCostReport:
+        if total_size_bytes < 0:
+            raise ValueError("total_size_bytes must be >= 0")
+
         base_cost = self._cost_calculator.calculate_egress_cost(total_size_bytes)
 
         credit_pct = Decimal(str(credit_percentage))

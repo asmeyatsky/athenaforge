@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from athenaforge.application.dtos.sql_dtos import UDFClassificationReport
-from athenaforge.domain.ports.event_bus import EventBusPort
 from athenaforge.domain.services.udf_classifier import UDFCategory, UDFClassifier
 
 
@@ -11,10 +10,8 @@ class ClassifyUDFsUseCase:
     def __init__(
         self,
         classifier: UDFClassifier,
-        event_bus: EventBusPort,
     ) -> None:
         self._classifier = classifier
-        self._event_bus = event_bus
 
     async def execute(
         self, udfs: dict[str, str]

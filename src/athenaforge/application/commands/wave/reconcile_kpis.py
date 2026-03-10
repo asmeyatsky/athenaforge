@@ -1,14 +1,10 @@
 from __future__ import annotations
 
 from athenaforge.application.dtos.wave_dtos import KPIReconciliationResult
-from athenaforge.domain.ports.event_bus import EventBusPort
 
 
 class ReconcileKPIsUseCase:
     """Reconcile KPIs between legacy and new platform (placeholder implementation)."""
-
-    def __init__(self, event_bus: EventBusPort) -> None:
-        self._event_bus = event_bus
 
     async def execute(
         self,

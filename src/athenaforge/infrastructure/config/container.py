@@ -322,7 +322,6 @@ class DependencyContainer:
         return ConfigurePricingUseCase(
             pricing_calculator=self.slot_pricing_calculator,
             terraform_generator=self.terraform_adapter,
-            event_bus=self.event_bus,
         )
 
     @property
@@ -359,15 +358,12 @@ class DependencyContainer:
 
     @property
     def normalise_case_sensitivity_use_case(self) -> NormaliseCaseSensitivityUseCase:
-        return NormaliseCaseSensitivityUseCase(
-            event_bus=self.event_bus,
-        )
+        return NormaliseCaseSensitivityUseCase()
 
     @property
     def classify_udfs_use_case(self) -> ClassifyUDFsUseCase:
         return ClassifyUDFsUseCase(
             classifier=self.udf_classifier,
-            event_bus=self.event_bus,
         )
 
     @property
@@ -439,15 +435,11 @@ class DependencyContainer:
 
     @property
     def migrate_dashboards_use_case(self) -> MigrateDashboardsUseCase:
-        return MigrateDashboardsUseCase(
-            event_bus=self.event_bus,
-        )
+        return MigrateDashboardsUseCase()
 
     @property
     def reconcile_kpis_use_case(self) -> ReconcileKPIsUseCase:
-        return ReconcileKPIsUseCase(
-            event_bus=self.event_bus,
-        )
+        return ReconcileKPIsUseCase()
 
     @property
     def control_parallel_run_use_case(self) -> ControlParallelRunUseCase:

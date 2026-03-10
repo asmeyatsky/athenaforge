@@ -138,58 +138,61 @@ def create_transfer_server(container) -> Server:
 
     @server.call_tool()
     async def call_tool(name: str, arguments: dict) -> list[TextContent]:
-        if name == "plan_delta_compaction":
-            result = await container.plan_delta_compaction_use_case.execute(
-                bucket=arguments["bucket"],
-                table_prefixes=arguments["table_prefixes"],
-            )
-            return [
-                TextContent(
-                    type="text",
-                    text=json.dumps([r.__dict__ for r in result]),
+        try:
+            if name == "plan_delta_compaction":
+                result = await container.plan_delta_compaction_use_case.execute(
+                    bucket=arguments["bucket"],
+                    table_prefixes=arguments["table_prefixes"],
                 )
-            ]
+                return [
+                    TextContent(
+                        type="text",
+                        text=json.dumps([r.__dict__ for r in result]),
+                    )
+                ]
 
-        if name == "model_egress_cost":
-            result = await container.model_egress_cost_use_case.execute(
-                total_size_bytes=arguments["total_size_bytes"],
-                credit_percentage=arguments.get("credit_percentage", 0.0),
-            )
-            return [TextContent(type="text", text=json.dumps(result.__dict__))]
-
-        if name == "create_sts_jobs":
-            result = await container.create_sts_jobs_use_case.execute(
-                source_buckets=arguments["source_buckets"],
-                dest_bucket=arguments["dest_bucket"],
-            )
-            return [
-                TextContent(
-                    type="text",
-                    text=json.dumps([r.__dict__ for r in result]),
+            if name == "model_egress_cost":
+                result = await container.model_egress_cost_use_case.execute(
+                    total_size_bytes=arguments["total_size_bytes"],
+                    credit_percentage=arguments.get("credit_percentage", 0.0),
                 )
-            ]
+                return [TextContent(type="text", text=json.dumps(result.__dict__))]
 
-        if name == "run_dvt_validation":
-            table_pairs = [
-                (pair[0], pair[1]) for pair in arguments["table_pairs"]
-            ]
-            result = await container.run_dvt_validation_use_case.execute(
-                tier=arguments["tier"],
-                table_pairs=table_pairs,
-                primary_keys=arguments.get("primary_keys"),
-            )
-            return [TextContent(type="text", text=json.dumps(result.__dict__))]
+            if name == "create_sts_jobs":
+                result = await container.create_sts_jobs_use_case.execute(
+                    source_buckets=arguments["source_buckets"],
+                    dest_bucket=arguments["dest_bucket"],
+                )
+                return [
+                    TextContent(
+                        type="text",
+                        text=json.dumps([r.__dict__ for r in result]),
+                    )
+                ]
 
-        if name == "control_streaming_cutover":
-            result = await container.control_streaming_cutover_use_case.execute(
-                job_id=arguments["job_id"],
-                source_topic=arguments["source_topic"],
-                target_topic=arguments["target_topic"],
-                current_lag=arguments.get("current_lag", 0),
-            )
-            return [TextContent(type="text", text=json.dumps(result.__dict__))]
+            if name == "run_dvt_validation":
+                table_pairs = [
+                    (pair[0], pair[1]) for pair in arguments["table_pairs"]
+                ]
+                result = await container.run_dvt_validation_use_case.execute(
+                    tier=arguments["tier"],
+                    table_pairs=table_pairs,
+                    primary_keys=arguments.get("primary_keys"),
+                )
+                return [TextContent(type="text", text=json.dumps(result.__dict__))]
 
-        raise ValueError(f"Unknown tool: {name}")
+            if name == "control_streaming_cutover":
+                result = await container.control_streaming_cutover_use_case.execute(
+                    job_id=arguments["job_id"],
+                    source_topic=arguments["source_topic"],
+                    target_topic=arguments["target_topic"],
+                    current_lag=arguments.get("current_lag", 0),
+                )
+                return [TextContent(type="text", text=json.dumps(result.__dict__))]
+
+            raise ValueError(f"Unknown tool: {name}")
+        except Exception as exc:
+            return [TextContent(type="text", text=json.dumps({"error": str(exc)}))]
 
     @server.list_resources()
     async def list_resources() -> list[Resource]:

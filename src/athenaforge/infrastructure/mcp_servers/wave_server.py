@@ -172,52 +172,55 @@ def create_wave_server(container) -> Server:
 
     @server.call_tool()
     async def call_tool(name: str, arguments: dict) -> list[TextContent]:
-        if name == "plan_waves":
-            result = await container.plan_waves_use_case.execute(
-                inventory_id=arguments["inventory_id"],
-                lobs=arguments["lobs"],
-                max_parallel=arguments.get("max_parallel", 3),
-            )
-            return [TextContent(type="text", text=json.dumps(result.__dict__))]
+        try:
+            if name == "plan_waves":
+                result = await container.plan_waves_use_case.execute(
+                    inventory_id=arguments["inventory_id"],
+                    lobs=arguments["lobs"],
+                    max_parallel=arguments.get("max_parallel", 3),
+                )
+                return [TextContent(type="text", text=json.dumps(result.__dict__))]
 
-        if name == "control_parallel_run":
-            result = await container.control_parallel_run_use_case.execute(
-                wave_id=arguments["wave_id"],
-                target_mode=arguments["target_mode"],
-            )
-            return [TextContent(type="text", text=json.dumps(result.__dict__))]
+            if name == "control_parallel_run":
+                result = await container.control_parallel_run_use_case.execute(
+                    wave_id=arguments["wave_id"],
+                    target_mode=arguments["target_mode"],
+                )
+                return [TextContent(type="text", text=json.dumps(result.__dict__))]
 
-        if name == "evaluate_rollback":
-            result = await container.evaluate_rollback_use_case.execute(
-                wave_id=arguments["wave_id"],
-                dvt_pass_rate=arguments["dvt_pass_rate"],
-                latency_increase_pct=arguments["latency_increase_pct"],
-                data_loss_detected=arguments["data_loss_detected"],
-                streaming_lag=arguments["streaming_lag"],
-                escalation_raised=arguments["escalation_raised"],
-            )
-            return [TextContent(type="text", text=json.dumps(result.__dict__))]
+            if name == "evaluate_rollback":
+                result = await container.evaluate_rollback_use_case.execute(
+                    wave_id=arguments["wave_id"],
+                    dvt_pass_rate=arguments["dvt_pass_rate"],
+                    latency_increase_pct=arguments["latency_increase_pct"],
+                    data_loss_detected=arguments["data_loss_detected"],
+                    streaming_lag=arguments["streaming_lag"],
+                    escalation_raised=arguments["escalation_raised"],
+                )
+                return [TextContent(type="text", text=json.dumps(result.__dict__))]
 
-        if name == "enforce_wave_gate":
-            result = await container.enforce_wave_gate_use_case.execute(
-                wave_id=arguments["wave_id"],
-                criteria=arguments["criteria"],
-            )
-            return [TextContent(type="text", text=json.dumps(result.__dict__))]
+            if name == "enforce_wave_gate":
+                result = await container.enforce_wave_gate_use_case.execute(
+                    wave_id=arguments["wave_id"],
+                    criteria=arguments["criteria"],
+                )
+                return [TextContent(type="text", text=json.dumps(result.__dict__))]
 
-        if name == "migrate_dashboards":
-            result = await container.migrate_dashboards_use_case.execute(
-                dashboard_configs=arguments["dashboard_configs"],
-            )
-            return [TextContent(type="text", text=json.dumps(result.__dict__))]
+            if name == "migrate_dashboards":
+                result = await container.migrate_dashboards_use_case.execute(
+                    dashboard_configs=arguments["dashboard_configs"],
+                )
+                return [TextContent(type="text", text=json.dumps(result.__dict__))]
 
-        if name == "reconcile_kpis":
-            result = await container.reconcile_kpis_use_case.execute(
-                kpi_definitions=arguments["kpi_definitions"],
-            )
-            return [TextContent(type="text", text=json.dumps(result.__dict__))]
+            if name == "reconcile_kpis":
+                result = await container.reconcile_kpis_use_case.execute(
+                    kpi_definitions=arguments["kpi_definitions"],
+                )
+                return [TextContent(type="text", text=json.dumps(result.__dict__))]
 
-        raise ValueError(f"Unknown tool: {name}")
+            raise ValueError(f"Unknown tool: {name}")
+        except Exception as exc:
+            return [TextContent(type="text", text=json.dumps({"error": str(exc)}))]
 
     @server.list_resources()
     async def list_resources() -> list[Resource]:

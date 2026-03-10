@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
+from typing import Self
 
 from athenaforge.domain.events.event_base import DomainEvent
 from athenaforge.domain.events.transfer_events import DVTValidationCompleted
@@ -30,7 +31,7 @@ class Wave:
     status: WaveStatus = WaveStatus.PLANNED
     mode: ParallelRunMode = ParallelRunMode.OLD_ONLY
     dvt_results: dict[str, bool] = field(default_factory=dict)
-    _events: list[DomainEvent] = field(default_factory=list, repr=False)
+    _events: tuple[DomainEvent, ...] = field(default=(), repr=False)
 
     # ── private helpers ─────────────────────────────────────────
 
@@ -61,22 +62,20 @@ class Wave:
     def cutover(self) -> Wave:
         """Initiate the final cutover."""
         self._assert_transition(WaveStatus.CUTTING_OVER)
-        new_wave = replace(
+        return replace(
             self,
             status=WaveStatus.CUTTING_OVER,
             mode=ParallelRunMode.NEW_ONLY,
         )
-        return new_wave
 
     def rollback(self, reason: str) -> Wave:
         """Roll the wave back to the old system."""
         self._assert_transition(WaveStatus.ROLLED_BACK)
-        rolled = replace(
+        return replace(
             self,
             status=WaveStatus.ROLLED_BACK,
             mode=ParallelRunMode.OLD_ONLY,
         )
-        return rolled
 
     def check_gate(self, criteria: dict[str, bool]) -> tuple[Wave, bool]:
         """Evaluate gate criteria. Returns the updated wave and whether the gate passed."""
@@ -90,15 +89,14 @@ class Wave:
             tables_validated = len(new_dvt)
             tables_passed = sum(1 for v in new_dvt.values() if v)
             tables_failed = tables_validated - tables_passed
-            new_wave._events.append(
-                DVTValidationCompleted(
-                    aggregate_id=self.wave_id,
-                    tier="",
-                    tables_validated=tables_validated,
-                    tables_passed=tables_passed,
-                    tables_failed=tables_failed,
-                )
+            event = DVTValidationCompleted(
+                aggregate_id=self.wave_id,
+                tier="",
+                tables_validated=tables_validated,
+                tables_passed=tables_passed,
+                tables_failed=tables_failed,
             )
+            new_wave = replace(new_wave, _events=new_wave._events + (event,))
 
             # Auto-advance to CUTOVER_READY when gate passes from REVERSE_SHADOW_RUNNING
             if self.status == WaveStatus.REVERSE_SHADOW_RUNNING:
@@ -108,8 +106,10 @@ class Wave:
 
     # ── event harvesting ────────────────────────────────────────
 
-    def collect_events(self) -> list[DomainEvent]:
-        """Return accumulated events and clear the internal list."""
-        events = list(self._events)
-        self._events.clear()
-        return events
+    def collect_events(self) -> tuple[DomainEvent, ...]:
+        """Return accumulated events."""
+        return self._events
+
+    def clear_events(self) -> Self:
+        """Return a new instance with an empty events tuple."""
+        return replace(self, _events=())

@@ -111,40 +111,43 @@ def create_sql_server(container) -> Server:
 
     @server.call_tool()
     async def call_tool(name: str, arguments: dict) -> list[TextContent]:
-        if name == "translate_batch":
-            result = await container.translate_batch_use_case.execute(
-                source_dir=arguments["source_dir"],
-                output_dir=arguments["output_dir"],
-            )
-            return [TextContent(type="text", text=json.dumps(result.__dict__))]
+        try:
+            if name == "translate_batch":
+                result = await container.translate_batch_use_case.execute(
+                    source_dir=arguments["source_dir"],
+                    output_dir=arguments["output_dir"],
+                )
+                return [TextContent(type="text", text=json.dumps(result.__dict__))]
 
-        if name == "analyse_map_cascade":
-            result = await container.analyse_map_cascade_use_case.execute(
-                dependencies=arguments["dependencies"],
-            )
-            return [TextContent(type="text", text=json.dumps(result.__dict__))]
+            if name == "analyse_map_cascade":
+                result = await container.analyse_map_cascade_use_case.execute(
+                    dependencies=arguments["dependencies"],
+                )
+                return [TextContent(type="text", text=json.dumps(result.__dict__))]
 
-        if name == "normalise_case_sensitivity":
-            result = await container.normalise_case_sensitivity_use_case.execute(
-                sql_content=arguments["sql_content"],
-                columns=arguments["columns"],
-            )
-            return [TextContent(type="text", text=result)]
+            if name == "normalise_case_sensitivity":
+                result = await container.normalise_case_sensitivity_use_case.execute(
+                    sql_content=arguments["sql_content"],
+                    columns=arguments["columns"],
+                )
+                return [TextContent(type="text", text=result)]
 
-        if name == "classify_udfs":
-            result = await container.classify_udfs_use_case.execute(
-                udfs=arguments["udfs"],
-            )
-            return [TextContent(type="text", text=json.dumps(result.__dict__))]
+            if name == "classify_udfs":
+                result = await container.classify_udfs_use_case.execute(
+                    udfs=arguments["udfs"],
+                )
+                return [TextContent(type="text", text=json.dumps(result.__dict__))]
 
-        if name == "validate_queries":
-            result = await container.validate_queries_use_case.execute(
-                query_paths=arguments["query_paths"],
-                query_contents=arguments["query_contents"],
-            )
-            return [TextContent(type="text", text=json.dumps(result.__dict__))]
+            if name == "validate_queries":
+                result = await container.validate_queries_use_case.execute(
+                    query_paths=arguments["query_paths"],
+                    query_contents=arguments["query_contents"],
+                )
+                return [TextContent(type="text", text=json.dumps(result.__dict__))]
 
-        raise ValueError(f"Unknown tool: {name}")
+            raise ValueError(f"Unknown tool: {name}")
+        except Exception as exc:
+            return [TextContent(type="text", text=json.dumps({"error": str(exc)}))]
 
     @server.list_resources()
     async def list_resources() -> list[Resource]:

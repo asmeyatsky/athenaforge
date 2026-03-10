@@ -2,10 +2,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
 from datetime import datetime
+from typing import TYPE_CHECKING, Self
 
 from athenaforge.domain.events.event_base import DomainEvent
 from athenaforge.domain.events.foundation_events import TierClassificationCompleted
 from athenaforge.domain.value_objects.tier import Tier, TierClassification
+
+if TYPE_CHECKING:
+    from athenaforge.domain.services.tier_classification_service import (
+        TierClassificationService,
+    )
 
 
 @dataclass(frozen=True)
@@ -29,35 +35,32 @@ class TableInventory:
     inventory_id: str
     tables: tuple[TableEntry, ...] = ()
     classifications: dict[str, TierClassification] = field(default_factory=dict)
-    _events: list[DomainEvent] = field(default_factory=list, repr=False)
+    _events: tuple[DomainEvent, ...] = field(default=(), repr=False)
 
     # ── commands ────────────────────────────────────────────────
 
-    def classify_all(self, service: object) -> TableInventory:
-        """Classify every table using the supplied classification service.
-
-        The *service* must expose a ``classify(table: TableEntry) -> TierClassification``
-        method.
-        """
+    def classify_all(self, service: TierClassificationService) -> TableInventory:
+        """Classify every table using the supplied classification service."""
         new_classifications: dict[str, TierClassification] = {}
         tier_counts: dict[Tier, int] = {Tier.TIER_1: 0, Tier.TIER_2: 0, Tier.TIER_3: 0}
 
         for table in self.tables:
-            classification: TierClassification = service.classify(table)  # type: ignore[attr-defined]
+            classification: TierClassification = service.classify(table)
             new_classifications[table.table_name] = classification
             tier_counts[classification.tier] = tier_counts.get(classification.tier, 0) + 1
 
-        new_inventory = replace(self, classifications=new_classifications)
-        new_inventory._events.append(
-            TierClassificationCompleted(
-                aggregate_id=self.inventory_id,
-                total_tables=len(self.tables),
-                tier1_count=tier_counts[Tier.TIER_1],
-                tier2_count=tier_counts[Tier.TIER_2],
-                tier3_count=tier_counts[Tier.TIER_3],
-            )
+        event = TierClassificationCompleted(
+            aggregate_id=self.inventory_id,
+            total_tables=len(self.tables),
+            tier1_count=tier_counts[Tier.TIER_1],
+            tier2_count=tier_counts[Tier.TIER_2],
+            tier3_count=tier_counts[Tier.TIER_3],
         )
-        return new_inventory
+        return replace(
+            self,
+            classifications=new_classifications,
+            _events=self._events + (event,),
+        )
 
     # ── queries ─────────────────────────────────────────────────
 
@@ -76,8 +79,10 @@ class TableInventory:
 
     # ── event harvesting ────────────────────────────────────────
 
-    def collect_events(self) -> list[DomainEvent]:
-        """Return accumulated events and clear the internal list."""
-        events = list(self._events)
-        self._events.clear()
-        return events
+    def collect_events(self) -> tuple[DomainEvent, ...]:
+        """Return accumulated events."""
+        return self._events
+
+    def clear_events(self) -> Self:
+        """Return a new instance with an empty events tuple."""
+        return replace(self, _events=())

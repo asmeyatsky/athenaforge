@@ -40,6 +40,11 @@ class TranslateBatchUseCase:
         3. Delegate to BQMS via ``SqlTranslationPort``.
         4. Persist the batch and publish domain events.
         """
+        if '..' in source_dir:
+            raise ValueError("Invalid source_dir: directory traversal not allowed")
+        if '..' in output_dir:
+            raise ValueError("Invalid output_dir: directory traversal not allowed")
+
         # Discover SQL files
         file_paths = [
             os.path.join(source_dir, f)

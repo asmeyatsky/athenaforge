@@ -26,6 +26,13 @@ class EvaluateRollbackUseCase:
         streaming_lag: int,
         escalation_raised: bool,
     ) -> RollbackCheckResult:
+        if not (0.0 <= dvt_pass_rate <= 1.0):
+            raise ValueError("dvt_pass_rate must be between 0.0 and 1.0")
+        if latency_increase_pct < 0.0:
+            raise ValueError("latency_increase_pct must be >= 0.0")
+        if streaming_lag < 0:
+            raise ValueError("streaming_lag must be >= 0")
+
         should_rollback, conditions = self._evaluator.evaluate(
             dvt_pass_rate=dvt_pass_rate,
             latency_increase_pct=latency_increase_pct,

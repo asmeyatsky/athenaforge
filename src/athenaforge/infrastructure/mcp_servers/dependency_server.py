@@ -130,38 +130,41 @@ def create_dependency_server(container) -> Server:
 
     @server.call_tool()
     async def call_tool(name: str, arguments: dict) -> list[TextContent]:
-        if name == "scan_spark_flink_jobs":
-            result = await container.scan_spark_flink_jobs_use_case.execute(
-                bucket=arguments["bucket"],
-                prefixes=arguments["prefixes"],
-            )
-            return [TextContent(type="text", text=json.dumps(result.__dict__))]
+        try:
+            if name == "scan_spark_flink_jobs":
+                result = await container.scan_spark_flink_jobs_use_case.execute(
+                    bucket=arguments["bucket"],
+                    prefixes=arguments["prefixes"],
+                )
+                return [TextContent(type="text", text=json.dumps(result.__dict__))]
 
-        if name == "rewrite_dags":
-            result = await container.rewrite_dags_use_case.execute(
-                dag_contents=arguments["dag_contents"],
-            )
-            return [TextContent(type="text", text=json.dumps(result.__dict__))]
+            if name == "rewrite_dags":
+                result = await container.rewrite_dags_use_case.execute(
+                    dag_contents=arguments["dag_contents"],
+                )
+                return [TextContent(type="text", text=json.dumps(result.__dict__))]
 
-        if name == "migrate_kafka_topics":
-            result = await container.migrate_kafka_topics_use_case.execute(
-                topic_configs=arguments["topic_configs"],
-            )
-            return [TextContent(type="text", text=json.dumps(result.__dict__))]
+            if name == "migrate_kafka_topics":
+                result = await container.migrate_kafka_topics_use_case.execute(
+                    topic_configs=arguments["topic_configs"],
+                )
+                return [TextContent(type="text", text=json.dumps(result.__dict__))]
 
-        if name == "rewrite_lambdas":
-            result = await container.rewrite_lambdas_use_case.execute(
-                lambda_sources=arguments["lambda_sources"],
-            )
-            return [TextContent(type="text", text=json.dumps(result.__dict__))]
+            if name == "rewrite_lambdas":
+                result = await container.rewrite_lambdas_use_case.execute(
+                    lambda_sources=arguments["lambda_sources"],
+                )
+                return [TextContent(type="text", text=json.dumps(result.__dict__))]
 
-        if name == "map_iam_permissions":
-            result = await container.map_iam_permissions_use_case.execute(
-                lake_formation_policies=arguments["lake_formation_policies"],
-            )
-            return [TextContent(type="text", text=json.dumps(result.__dict__))]
+            if name == "map_iam_permissions":
+                result = await container.map_iam_permissions_use_case.execute(
+                    lake_formation_policies=arguments["lake_formation_policies"],
+                )
+                return [TextContent(type="text", text=json.dumps(result.__dict__))]
 
-        raise ValueError(f"Unknown tool: {name}")
+            raise ValueError(f"Unknown tool: {name}")
+        except Exception as exc:
+            return [TextContent(type="text", text=json.dumps({"error": str(exc)}))]
 
     @server.list_resources()
     async def list_resources() -> list[Resource]:

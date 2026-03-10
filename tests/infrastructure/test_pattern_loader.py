@@ -78,15 +78,16 @@ class TestPatternCategories:
             PatternCategory.MAP_CONSTRUCTOR,
             PatternCategory.TRANSFORM,
             PatternCategory.FILTER,
-            PatternCategory.DATE_TRUNC,
-            PatternCategory.DATE_ADD,
             PatternCategory.TRY_CAST,
-            PatternCategory.REGEXP_LIKE,
-            PatternCategory.APPROX_DISTINCT,
             PatternCategory.ARBITRARY,
             PatternCategory.CONTAINS,
             PatternCategory.MAP_KEYS,
             PatternCategory.MAP_VALUES,
+            PatternCategory.STRING_FUNCTIONS,
+            PatternCategory.DATE_FUNCTIONS,
+            PatternCategory.ARRAY_FUNCTIONS,
+            PatternCategory.AGGREGATE_FUNCTIONS,
+            PatternCategory.TYPE_CASTING,
         }
         missing = expected - categories
         assert not missing, f"Missing expected categories: {missing}"

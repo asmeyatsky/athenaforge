@@ -27,6 +27,11 @@ class GenerateScaffoldUseCase:
     async def execute(
         self, manifest_path: str, output_dir: str
     ) -> ScaffoldResult:
+        if '..' in manifest_path:
+            raise ValueError("Invalid manifest_path: directory traversal not allowed")
+        if '..' in output_dir:
+            raise ValueError("Invalid output_dir: directory traversal not allowed")
+
         manifest = self._config_port.load_manifest(manifest_path)
         lobs: list[dict] = manifest.get("lobs", [])
 

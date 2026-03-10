@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
+from typing import Self
 
 from athenaforge.domain.events.event_base import DomainEvent
-from athenaforge.domain.events.sql_events import (
-    TranslationBatchCompleted,
-    TranslationBatchStarted,
-)
+from athenaforge.domain.events.sql_events import TranslationBatchCompleted
+from athenaforge.domain.value_objects.status import BatchStatus, FileStatus
 
 
 @dataclass(frozen=True)
@@ -14,7 +13,7 @@ class TranslationFile:
     """Immutable record tracking the translation state of a single SQL file."""
 
     file_path: str
-    status: str = "pending"
+    status: FileStatus = FileStatus.PENDING
     error: str | None = None
     translated_path: str | None = None
 
@@ -25,8 +24,8 @@ class TranslationBatch:
 
     batch_id: str
     files: tuple[TranslationFile, ...]
-    status: str = "pending"
-    _events: list[DomainEvent] = field(default_factory=list, repr=False)
+    status: BatchStatus = BatchStatus.PENDING
+    _events: tuple[DomainEvent, ...] = field(default=(), repr=False)
 
     # ── commands ────────────────────────────────────────────────
 
@@ -35,7 +34,7 @@ class TranslationBatch:
     ) -> TranslationBatch:
         """Return a new batch with the given file marked as translated."""
         updated_files = tuple(
-            replace(f, status="translated", translated_path=translated_path)
+            replace(f, status=FileStatus.TRANSLATED, translated_path=translated_path)
             if f.file_path == file_path
             else f
             for f in self.files
@@ -47,7 +46,7 @@ class TranslationBatch:
     def mark_file_failed(self, file_path: str, error: str) -> TranslationBatch:
         """Return a new batch with the given file marked as failed."""
         updated_files = tuple(
-            replace(f, status="failed", error=error)
+            replace(f, status=FileStatus.FAILED, error=error)
             if f.file_path == file_path
             else f
             for f in self.files
@@ -63,32 +62,35 @@ class TranslationBatch:
         """Percentage of files that are no longer pending."""
         if not self.files:
             return 100.0
-        done = sum(1 for f in self.files if f.status != "pending")
+        done = sum(1 for f in self.files if f.status != FileStatus.PENDING)
         return (done / len(self.files)) * 100.0
 
     # ── internals ───────────────────────────────────────────────
 
     def _maybe_complete(self) -> TranslationBatch:
         """If all files are processed, mark the batch as completed and emit event."""
-        if all(f.status != "pending" for f in self.files) and self.status != "completed":
-            succeeded = sum(1 for f in self.files if f.status == "translated")
-            failed = sum(1 for f in self.files if f.status == "failed")
-            completed = replace(self, status="completed")
-            completed._events.append(
-                TranslationBatchCompleted(
-                    aggregate_id=self.batch_id,
-                    batch_id=self.batch_id,
-                    succeeded=succeeded,
-                    failed=failed,
-                )
+        if all(f.status != FileStatus.PENDING for f in self.files) and self.status != BatchStatus.COMPLETED:
+            succeeded = sum(1 for f in self.files if f.status == FileStatus.TRANSLATED)
+            failed = sum(1 for f in self.files if f.status == FileStatus.FAILED)
+            event = TranslationBatchCompleted(
+                aggregate_id=self.batch_id,
+                batch_id=self.batch_id,
+                succeeded=succeeded,
+                failed=failed,
             )
-            return completed
+            return replace(
+                self,
+                status=BatchStatus.COMPLETED,
+                _events=self._events + (event,),
+            )
         return self
 
     # ── event harvesting ────────────────────────────────────────
 
-    def collect_events(self) -> list[DomainEvent]:
-        """Return accumulated events and clear the internal list."""
-        events = list(self._events)
-        self._events.clear()
-        return events
+    def collect_events(self) -> tuple[DomainEvent, ...]:
+        """Return accumulated events."""
+        return self._events
+
+    def clear_events(self) -> Self:
+        """Return a new instance with an empty events tuple."""
+        return replace(self, _events=())

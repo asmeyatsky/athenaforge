@@ -112,47 +112,50 @@ def create_foundation_server(container) -> Server:
 
     @server.call_tool()
     async def call_tool(name: str, arguments: dict) -> list[TextContent]:
-        if name == "generate_scaffold":
-            result = await container.generate_scaffold_use_case.execute(
-                manifest_path=arguments["manifest_path"],
-                output_dir=arguments["output_dir"],
-            )
-            return [TextContent(type="text", text=json.dumps(result.__dict__))]
-
-        if name == "classify_tiers":
-            result = await container.classify_tiers_use_case.execute(
-                inventory_id=arguments["inventory_id"],
-            )
-            return [TextContent(type="text", text=json.dumps(result.__dict__))]
-
-        if name == "configure_pricing":
-            result = await container.configure_pricing_use_case.execute(
-                slots=arguments["slots"],
-                commitment_years=arguments["commitment_years"],
-                output_dir=arguments["output_dir"],
-            )
-            return [TextContent(type="text", text=json.dumps(result.__dict__))]
-
-        if name == "bootstrap_dataplex":
-            result = await container.bootstrap_dataplex_use_case.execute(
-                lake_name=arguments["lake_name"],
-                zones=arguments["zones"],
-            )
-            return [TextContent(type="text", text=json.dumps(result))]
-
-        if name == "check_delta_health":
-            result = await container.check_delta_health_use_case.execute(
-                bucket=arguments["bucket"],
-                table_prefix=arguments["table_prefix"],
-            )
-            return [
-                TextContent(
-                    type="text",
-                    text=json.dumps([r.__dict__ for r in result]),
+        try:
+            if name == "generate_scaffold":
+                result = await container.generate_scaffold_use_case.execute(
+                    manifest_path=arguments["manifest_path"],
+                    output_dir=arguments["output_dir"],
                 )
-            ]
+                return [TextContent(type="text", text=json.dumps(result.__dict__))]
 
-        raise ValueError(f"Unknown tool: {name}")
+            if name == "classify_tiers":
+                result = await container.classify_tiers_use_case.execute(
+                    inventory_id=arguments["inventory_id"],
+                )
+                return [TextContent(type="text", text=json.dumps(result.__dict__))]
+
+            if name == "configure_pricing":
+                result = await container.configure_pricing_use_case.execute(
+                    slots=arguments["slots"],
+                    commitment_years=arguments["commitment_years"],
+                    output_dir=arguments["output_dir"],
+                )
+                return [TextContent(type="text", text=json.dumps(result.__dict__))]
+
+            if name == "bootstrap_dataplex":
+                result = await container.bootstrap_dataplex_use_case.execute(
+                    lake_name=arguments["lake_name"],
+                    zones=arguments["zones"],
+                )
+                return [TextContent(type="text", text=json.dumps(result))]
+
+            if name == "check_delta_health":
+                result = await container.check_delta_health_use_case.execute(
+                    bucket=arguments["bucket"],
+                    table_prefix=arguments["table_prefix"],
+                )
+                return [
+                    TextContent(
+                        type="text",
+                        text=json.dumps([r.__dict__ for r in result]),
+                    )
+                ]
+
+            raise ValueError(f"Unknown tool: {name}")
+        except Exception as exc:
+            return [TextContent(type="text", text=json.dumps({"error": str(exc)}))]
 
     @server.list_resources()
     async def list_resources() -> list[Resource]:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 
 
@@ -8,7 +8,7 @@ from datetime import datetime
 class LOB:
     name: str
     owner: str
-    datasets: list[str] = field(default_factory=list)
+    datasets: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
